@@ -30,7 +30,7 @@ export default function RootLayout({
         <meta charSet="utf-8"></meta>
         <link rel="icon" href="#"></link>
       </Head>
-      <body>
+      <body suppressHydrationWarning>
         {children}
         {/* <Analytics /> */}
       </body>
