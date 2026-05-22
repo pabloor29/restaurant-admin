@@ -1,26 +1,42 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --primary: #B1202A;
+  --secondary: #180607;
+  --neutral: #FCEEEF;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+/* classes custom */
+.bg-primary { background-color: var(--primary); }
+.text-primary { color: var(--primary); }
+
+.bg-secondary { background-color: var(--secondary); }
+.text-secondary { color: var(--secondary); }
+
+.bg-neutral { background-color: var(--neutral); }
+.text-neutral { color: var(--neutral); }
+
+/* Déclaration de la font */
+@font-face {
+  font-family: "TulpenOne";
+  src: url("/fonts/Tulpen_One/TulpenOne-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+@font-face {
+  font-family: "RobotoFlex";
+  src: url("/fonts/Roboto_Flex/RobotoFlex.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* Optionnel : créer une variable pour la réutiliser */
+:root {
+  --font-primary: "TulpenOne", sans-serif;
+  --font-secondary: 'RobotoFlex', sans-serif;
 }
+
+/* Classe custom Tailwind */
+.font-primary { font-family: var(--font-primary); }
+.font-secondary { font-family: var(--font-secondary); }
