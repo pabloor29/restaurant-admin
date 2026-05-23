@@ -143,7 +143,7 @@ export default function FermeturesPage({ params }: { params: Promise<{ id: strin
             className="font-secondary text-sm py-2.5 px-5 rounded-lg cursor-pointer transition-opacity hover:opacity-80"
             style={{ backgroundColor: isDateClosed ? 'rgba(50,180,100,0.2)' : 'var(--primary)', color: 'var(--neutral)', border: isDateClosed ? '1px solid rgba(50,180,100,0.4)' : 'none' }}
           >
-            {isDateClosed ? '✓ Réactiver les réservations' : 'Marquer complet ce jour'}
+            {isDateClosed ? '✓ Réactiver les réservations' : 'Désactiver les réservations ce jour'}
           </button>
         </div>
       )}
@@ -151,7 +151,7 @@ export default function FermeturesPage({ params }: { params: Promise<{ id: strin
       {/* Légende */}
       <div className="flex gap-5">
         {[
-          { color: 'var(--primary)', label: 'Restaurant complet' },
+          { color: 'var(--primary)', label: 'Réservations desactivées pour ce jour' },
           { color: 'rgba(252,238,239,0.07)', label: 'Disponible' },
           { color: 'rgba(252,238,239,0.03)', label: 'Jour passé' },
         ].map(({ color, label }) => (
