@@ -9,6 +9,7 @@ const sections = [
   { path: '/conges', label: 'Congés' },
   { path: '/formules', label: 'Formules' },
   { path: '/menus', label: 'Menus' },
+  { path: '/evenements', label: 'Évènements' },
 ]
 
 export default function RestaurantNav({ restaurantId }: { restaurantId: string }) {
