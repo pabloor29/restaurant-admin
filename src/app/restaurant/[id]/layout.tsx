@@ -29,6 +29,15 @@ export default async function RestaurantLayout({
     isAdmin = !!profile?.is_admin
   }
 
+  const ALL_SECTION_KEYS = ['horaires', 'fermetures', 'conges', 'formules', 'menus', 'evenements']
+  const initialEnabled: Record<string, boolean> = Object.fromEntries(ALL_SECTION_KEYS.map(k => [k, true]))
+
+  const { data: sectionRows } = await supabase
+    .from('restaurant_sections')
+    .select('section, enabled')
+    .eq('restaurant_id', id)
+  sectionRows?.forEach(row => { initialEnabled[row.section] = row.enabled })
+
   return (
     <div className="min-h-screen bg-secondary">
       <header className="px-6 pt-6" style={{ borderBottom: '1px solid rgba(252,238,239,0.08)' }}>
@@ -47,7 +56,7 @@ export default async function RestaurantLayout({
               </Link>
             )}
           </div>
-          <RestaurantNav restaurantId={id} />
+          <RestaurantNav restaurantId={id} isAdmin={isAdmin} initialEnabled={initialEnabled} />
         </div>
       </header>
       <main className="px-6 py-8">
