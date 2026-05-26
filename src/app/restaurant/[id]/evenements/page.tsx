@@ -33,7 +33,6 @@ export default function EvenementsPage({ params }: { params: Promise<{ id: strin
   const [newDate, setNewDate] = useState('')
   const [creating, setCreating] = useState(false)
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (user) {
@@ -42,6 +41,7 @@ export default function EvenementsPage({ params }: { params: Promise<{ id: strin
       }
     })
     load()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [restaurantId])
 
   const load = async () => {
