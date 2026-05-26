@@ -52,7 +52,7 @@ async function pdfToWebPs(
     canvas.height = viewport.height
     const ctx = canvas.getContext('2d')!
 
-    await page.render({ canvasContext: ctx as unknown as CanvasRenderingContext2D, viewport }).promise
+    await page.render({ canvasContext: ctx as unknown as CanvasRenderingContext2D, canvas, viewport }).promise
 
     const webpFile = await new Promise<File>((resolve, reject) => {
       canvas.toBlob(
