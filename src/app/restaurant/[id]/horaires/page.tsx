@@ -31,8 +31,8 @@ export default function HorairesPage({ params }: { params: Promise<{ id: string 
       .single()
       .then(({ data }) => {
         if (data?.hours) {
-          setTimes(data.hours.map((h: any) => ({ midi: h.midi || { debut: '', fin: '' }, soir: h.soir || { debut: '', fin: '' } })))
-          setClosed(data.hours.map((h: any) => ({ closedLunch: !!h.closedLunch, closedDiner: !!h.closedDiner, closedDay: !!h.closedDay })))
+          setTimes(data.hours.map((h: TimeSlot & ClosedState) => ({ midi: h.midi || { debut: '', fin: '' }, soir: h.soir || { debut: '', fin: '' } })))
+          setClosed(data.hours.map((h: TimeSlot & ClosedState) => ({ closedLunch: !!h.closedLunch, closedDiner: !!h.closedDiner, closedDay: !!h.closedDay })))
         }
       })
   }, [restaurantId])
@@ -59,7 +59,7 @@ export default function HorairesPage({ params }: { params: Promise<{ id: string 
   return (
     <div>
       <h2 className="font-secondary text-neutral mb-6" style={{ fontSize: '0.8rem', letterSpacing: '0.12em', opacity: 0.6 }}>
-        HORAIRES D'OUVERTURE
+        HORAIRES D&apos;OUVERTURE
       </h2>
 
       {/* Desktop */}

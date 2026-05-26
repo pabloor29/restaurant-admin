@@ -38,6 +38,7 @@ export default function FormulesPage({ params }: { params: Promise<{ id: string 
     setLoading(false)
   }
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { load() }, [restaurantId])
 
   const reset = () => { setNom(''); setPrix(''); setDescription(''); setElements(''); setEditingId(null) }

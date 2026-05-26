@@ -33,6 +33,7 @@ export default function EvenementsPage({ params }: { params: Promise<{ id: strin
   const [newDate, setNewDate] = useState('')
   const [creating, setCreating] = useState(false)
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (user) {
@@ -214,7 +215,7 @@ export default function EvenementsPage({ params }: { params: Promise<{ id: strin
                       className="font-secondary text-xs px-3 py-1.5 rounded-lg cursor-pointer transition-opacity hover:opacity-70"
                       style={{ backgroundColor: 'rgba(220,50,50,0.1)', border: '1px solid rgba(220,50,50,0.25)', color: 'rgba(252,238,239,0.5)' }}
                     >
-                      Supprimer l'évènement
+                      Supprimer l&apos;évènement
                     </button>
                   )}
                 </div>

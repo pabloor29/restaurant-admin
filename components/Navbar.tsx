@@ -1,4 +1,4 @@
-import { ChevronDown, List } from 'lucide-react'
+import { ChevronDown } from 'lucide-react'
 import React from 'react'
 
 function Navbar() {

@@ -33,6 +33,7 @@ export default function MenusPage({ params }: { params: Promise<{ id: string }> 
   const [newCatName, setNewCatName] = useState('')
   const [creating, setCreating] = useState(false)
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (user) {
