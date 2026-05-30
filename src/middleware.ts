@@ -70,9 +70,9 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/login', request.url))
   }
 
-  // Admin : accès libre à tout sauf /setup
+  // Admin : accès libre à tout sauf /setup et /
   if (isAdmin) {
-    if (path === SETUP_ROUTE) return NextResponse.redirect(new URL('/admin', request.url))
+    if (path === SETUP_ROUTE || path === '/') return NextResponse.redirect(new URL('/admin', request.url))
     return supabaseResponse
   }
 

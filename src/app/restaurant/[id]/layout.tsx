@@ -1,6 +1,7 @@
 import { createClient } from '../../../../lib/supabase/server'
 import Link from 'next/link'
 import RestaurantNav from './RestaurantNav'
+import LogoutButton from './LogoutButton'
 
 export default async function RestaurantLayout({
   children,
@@ -46,7 +47,7 @@ export default async function RestaurantLayout({
             <h1 className="font-primary text-neutral" style={{ fontSize: '2.5rem', lineHeight: 1 }}>
               {restaurant?.name ?? '—'}
             </h1>
-            {isAdmin && (
+            {isAdmin ? (
               <Link
                 href="/admin"
                 className="font-secondary text-sm"
@@ -54,6 +55,8 @@ export default async function RestaurantLayout({
               >
                 ← Admin
               </Link>
+            ) : (
+              <LogoutButton />
             )}
           </div>
           <RestaurantNav restaurantId={id} isAdmin={isAdmin} initialEnabled={initialEnabled} />
