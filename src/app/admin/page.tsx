@@ -16,7 +16,8 @@ type User = {
   subscription_status: SubscriptionStatus
 }
 
-type Restaurant = { id: string; name: string }
+type ReservationMode = 'simple' | 'advanced'
+type Restaurant = { id: string; name: string; reservation_mode: ReservationMode }
 
 const STATUS_LABELS: Record<SubscriptionStatus, string> = {
   pending: 'En attente',
@@ -64,7 +65,7 @@ export default function AdminPage() {
     setLoading(true)
     const [usersRes, { data: restData }] = await Promise.all([
       fetch('/api/admin/users'),
-      supabase.from('restaurants').select('id, name').order('name'),
+      supabase.from('restaurants').select('id, name, reservation_mode').order('name'),
     ])
     if (usersRes.ok) setUsers(await usersRes.json())
     if (restData) setRestaurants(restData)
@@ -101,6 +102,15 @@ export default function AdminPage() {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ user_id: userId, restaurant_id: newRestaurantId || null }),
+    })
+    loadData()
+  }
+
+  async function handleModeChange(restaurantId: string, mode: ReservationMode) {
+    await fetch('/api/admin/restaurants', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ restaurant_id: restaurantId, reservation_mode: mode }),
     })
     loadData()
   }
@@ -153,17 +163,37 @@ export default function AdminPage() {
             <p className="font-secondary mb-3" style={{ fontSize: '0.72rem', letterSpacing: '0.12em', color: 'var(--muted)', fontWeight: 600 }}>
               RESTAURANTS
             </p>
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-3">
               {restaurants.map(r => (
-                <Link
-                  key={r.id}
-                  href={`/restaurant/${r.id}`}
-                  className="flex items-center justify-between p-4 transition-all"
-                  style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, textDecoration: 'none' }}
-                >
-                  <span className="font-secondary" style={{ fontSize: '0.9rem', color: 'var(--ink)', fontWeight: 500 }}>{r.name}</span>
-                  <span className="font-secondary" style={{ fontSize: '0.8rem', color: 'var(--pine)' }}>Accéder →</span>
-                </Link>
+                <div key={r.id} style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
+                  <div className="flex items-center justify-between p-4" style={{ borderBottom: '1px solid var(--border-soft)' }}>
+                    <span className="font-secondary" style={{ fontSize: '0.9rem', color: 'var(--ink)', fontWeight: 500 }}>{r.name}</span>
+                    <Link href={`/restaurant/${r.id}`} className="font-secondary" style={{ fontSize: '0.8rem', color: 'var(--pine)', textDecoration: 'none' }}>Accéder →</Link>
+                  </div>
+                  <div className="flex items-center gap-3 px-4 py-3 flex-wrap">
+                    <p className="font-secondary" style={{ fontSize: '0.72rem', fontWeight: 600, color: 'var(--muted)', letterSpacing: '0.08em' }}>MODE RÉSERVATION</p>
+                    <div className="flex gap-1 p-1 rounded-lg" style={{ backgroundColor: 'var(--surface-alt)', border: '1px solid var(--border)' }}>
+                      {(['simple', 'advanced'] as ReservationMode[]).map(m => {
+                        const active = (r.reservation_mode ?? 'simple') === m
+                        return (
+                          <button
+                            key={m}
+                            onClick={() => handleModeChange(r.id, m)}
+                            className="font-secondary cursor-pointer transition-all"
+                            style={{ border: 'none', borderRadius: 6, padding: '5px 12px', fontSize: '0.78rem', fontWeight: active ? 600 : 400, color: active ? 'var(--pine)' : 'var(--slate)', backgroundColor: active ? 'var(--pine-light)' : 'transparent' }}
+                          >
+                            {m === 'simple' ? 'Simple' : 'Avancé'}
+                          </button>
+                        )
+                      })}
+                    </div>
+                    <p className="font-secondary" style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>
+                      {(r.reservation_mode ?? 'simple') === 'simple'
+                        ? 'Accepter / Refuser uniquement'
+                        : 'Gestion complète + ajout manuel + suivi arrivée'}
+                    </p>
+                  </div>
+                </div>
               ))}
             </div>
           </div>

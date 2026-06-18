@@ -8,12 +8,13 @@ import { createClient } from '../../../../lib/supabase/client'
 const supabase = createClient()
 
 const ALL_SECTIONS = [
-  { path: '/horaires',   label: 'Horaires',    key: 'horaires' },
-  { path: '/fermetures', label: 'Fermetures',  key: 'fermetures' },
-  { path: '/conges',     label: 'Congés',      key: 'conges' },
-  { path: '/formules',   label: 'Formules',    key: 'formules' },
-  { path: '/menus',      label: 'Menus',       key: 'menus' },
-  { path: '/evenements', label: 'Évènements',  key: 'evenements' },
+  { path: '/reservations', label: 'Réservations', key: 'reservations' },
+  { path: '/horaires',     label: 'Horaires',     key: 'horaires' },
+  { path: '/fermetures',   label: 'Fermetures',   key: 'fermetures' },
+  { path: '/conges',       label: 'Congés',       key: 'conges' },
+  { path: '/formules',     label: 'Formules',     key: 'formules' },
+  { path: '/menus',        label: 'Menus',        key: 'menus' },
+  { path: '/evenements',   label: 'Évènements',   key: 'evenements' },
 ]
 
 const STATIC_SECTIONS = [
