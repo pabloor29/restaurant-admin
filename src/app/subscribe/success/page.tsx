@@ -14,7 +14,6 @@ export default async function SubscribeSuccessPage() {
     .eq('id', user.id)
     .single()
 
-  // Si l'abonnement est déjà actif (webhook reçu), rediriger directement
   if (profile?.subscription_status === 'active' || profile?.subscription_status === 'trialing') {
     redirect(`/restaurant/${profile.restaurant_id}`)
   }
@@ -22,35 +21,39 @@ export default async function SubscribeSuccessPage() {
   return (
     <div className="min-h-screen bg-secondary flex flex-col items-center justify-center px-4 text-center">
       <div
-        className="w-16 h-16 rounded-full flex items-center justify-center mb-6"
-        style={{ backgroundColor: 'rgba(252,238,239,0.08)', border: '1px solid rgba(252,238,239,0.15)' }}
+        className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6"
+        style={{ backgroundColor: 'var(--pine-light)' }}
       >
-        <span style={{ fontSize: '1.8rem' }}>✓</span>
+        <svg width="28" height="22" viewBox="0 0 28 22" fill="none">
+          <path d="M2 11L10 19L26 2" stroke="#13503B" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
       </div>
 
-      <h1 className="font-primary text-neutral mb-3" style={{ fontSize: '2.5rem' }}>
+      <h1 className="font-primary mb-3" style={{ fontSize: '2rem', fontWeight: 700, color: 'var(--ink)', letterSpacing: '-0.01em' }}>
         Merci !
       </h1>
-      <p className="font-secondary mb-2" style={{ color: 'rgba(252,238,239,0.7)', fontSize: '0.95rem' }}>
+      <p className="font-secondary mb-2" style={{ color: 'var(--ink)', fontSize: '0.95rem' }}>
         Votre abonnement est en cours d&apos;activation.
       </p>
-      <p className="font-secondary mb-10" style={{ color: 'rgba(252,238,239,0.35)', fontSize: '0.8rem' }}>
+      <p className="font-secondary mb-10" style={{ color: 'var(--slate)', fontSize: '0.85rem' }}>
         Cela peut prendre quelques secondes.
       </p>
 
       {profile?.restaurant_id && (
         <Link
           href={`/restaurant/${profile.restaurant_id}`}
-          className="font-secondary py-3 px-8 rounded-xl"
+          className="font-secondary"
           style={{
-            backgroundColor: 'var(--primary)',
-            color: 'var(--neutral)',
-            fontSize: '0.85rem',
-            letterSpacing: '0.1em',
+            backgroundColor: 'var(--pine)',
+            color: 'var(--paper)',
+            borderRadius: 10,
+            padding: '12px 28px',
+            fontSize: '0.875rem',
+            fontWeight: 600,
             textDecoration: 'none',
           }}
         >
-          ACCÉDER À MON ESPACE
+          Accéder à mon espace →
         </Link>
       )}
     </div>

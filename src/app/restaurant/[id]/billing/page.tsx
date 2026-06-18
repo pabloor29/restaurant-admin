@@ -5,13 +5,22 @@ import { createClient } from '../../../../../lib/supabase/client'
 
 type Status = 'active' | 'trialing' | 'canceled' | 'past_due' | 'pending' | 'free'
 
-const STATUS_LABELS: Record<Status, { label: string; color: string }> = {
-  active: { label: 'Actif', color: '#4ade80' },
-  trialing: { label: 'Période d\'essai', color: '#facc15' },
-  free: { label: 'Accès gratuit', color: '#a78bfa' },
-  past_due: { label: 'Paiement en retard', color: '#f87171' },
-  canceled: { label: 'Annulé', color: '#f87171' },
-  pending: { label: 'En attente', color: 'rgba(252,238,239,0.4)' },
+const STATUS_LABELS: Record<Status, string> = {
+  active:   'Actif',
+  trialing: "Période d'essai",
+  free:     'Accès gratuit',
+  past_due: 'Paiement en retard',
+  canceled: 'Annulé',
+  pending:  'En attente',
+}
+
+const STATUS_COLORS: Record<Status, { text: string; bg: string }> = {
+  active:   { text: 'var(--status-ok-text)',   bg: 'var(--status-ok-bg)' },
+  trialing: { text: 'var(--status-warn-text)', bg: 'var(--status-warn-bg)' },
+  free:     { text: 'var(--status-info-text)', bg: 'var(--status-info-bg)' },
+  past_due: { text: 'var(--status-err-text)',  bg: 'var(--status-err-bg)' },
+  canceled: { text: 'var(--status-err-text)',  bg: 'var(--status-err-bg)' },
+  pending:  { text: 'var(--muted)',            bg: 'var(--surface-alt)' },
 }
 
 export default function BillingPage() {
@@ -23,11 +32,7 @@ export default function BillingPage() {
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (!user) return
-      supabase
-        .from('profiles')
-        .select('subscription_status')
-        .eq('id', user.id)
-        .single()
+      supabase.from('profiles').select('subscription_status').eq('id', user.id).single()
         .then(({ data }) => {
           setStatus((data?.subscription_status as Status) ?? 'pending')
           setLoading(false)
@@ -43,27 +48,28 @@ export default function BillingPage() {
     else setPortalLoading(false)
   }
 
-  const info = status ? STATUS_LABELS[status] : null
+  const info = status ? STATUS_COLORS[status] : null
 
   return (
-    <div className="max-w-md">
-      <h2 className="font-secondary text-neutral mb-8" style={{ fontSize: '0.8rem', letterSpacing: '0.12em', opacity: 0.6 }}>
+    <div style={{ maxWidth: 480 }}>
+      <h2 className="font-secondary mb-8" style={{ fontSize: '0.72rem', letterSpacing: '0.12em', color: 'var(--muted)', fontWeight: 600 }}>
         ABONNEMENT
       </h2>
 
-      <div
-        className="rounded-xl p-6 mb-6"
-        style={{ backgroundColor: 'rgba(252,238,239,0.05)', border: '1px solid rgba(252,238,239,0.1)' }}
-      >
-        <p className="font-secondary mb-1" style={{ fontSize: '0.7rem', letterSpacing: '0.12em', color: 'rgba(252,238,239,0.4)' }}>
+      <div className="rounded-xl p-6 mb-6" style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)' }}>
+        <p className="font-secondary mb-2" style={{ fontSize: '0.72rem', letterSpacing: '0.1em', color: 'var(--muted)', fontWeight: 600 }}>
           STATUT
         </p>
         {loading ? (
-          <p className="font-secondary" style={{ color: 'rgba(252,238,239,0.4)', fontSize: '0.9rem' }}>Chargement...</p>
+          <p className="font-secondary" style={{ color: 'var(--muted)', fontSize: '0.875rem' }}>Chargement...</p>
         ) : (
-          <p className="font-secondary" style={{ color: info?.color, fontSize: '1rem' }}>
-            {info?.label ?? '—'}
-          </p>
+          <span
+            className="font-secondary inline-flex items-center gap-2"
+            style={{ fontSize: '0.875rem', fontWeight: 600, color: info?.text, backgroundColor: info?.bg, padding: '6px 14px', borderRadius: 99 }}
+          >
+            <span style={{ width: 7, height: 7, borderRadius: '50%', backgroundColor: 'currentColor', display: 'inline-block' }} />
+            {status ? STATUS_LABELS[status] : '—'}
+          </span>
         )}
       </div>
 
@@ -71,22 +77,24 @@ export default function BillingPage() {
         <button
           onClick={handlePortal}
           disabled={portalLoading}
-          className="w-full font-secondary py-3 rounded-xl transition-opacity cursor-pointer"
+          className="w-full font-secondary cursor-pointer transition-all"
           style={{
-            backgroundColor: 'rgba(252,238,239,0.07)',
-            border: '1px solid rgba(252,238,239,0.15)',
-            color: 'var(--neutral)',
+            backgroundColor: 'var(--surface)',
+            border: '1.5px solid var(--border)',
+            borderRadius: 10,
+            padding: '12px 20px',
+            fontSize: '0.875rem',
+            fontWeight: 500,
+            color: 'var(--ink)',
             opacity: portalLoading ? 0.5 : 1,
-            fontSize: '0.8rem',
-            letterSpacing: '0.1em',
           }}
         >
-          {portalLoading ? '...' : 'GÉRER MON ABONNEMENT'}
+          {portalLoading ? '...' : 'Gérer mon abonnement →'}
         </button>
       )}
 
       {status === 'free' && (
-        <p className="font-secondary text-center" style={{ color: 'rgba(252,238,239,0.35)', fontSize: '0.8rem' }}>
+        <p className="font-secondary" style={{ fontSize: '0.875rem', color: 'var(--slate)' }}>
           Vous bénéficiez d&apos;un accès gratuit.
         </p>
       )}

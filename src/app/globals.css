@@ -1,42 +1,118 @@
 @import "tailwindcss";
 
+/* ─── DESIGN TOKENS ─── */
 :root {
-  --primary: #B1202A;
-  --secondary: #180607;
-  --neutral: #FCEEEF;
+  /* Brand */
+  --pine:         #13503B;
+  --pine-dark:    #0C3528;
+  --pine-light:   #E7F0EB;
+  --amber:        #C77E3A;
+  --amber-light:  #F3E5D3;
+
+  /* Neutrals */
+  --ink:          #16201B;
+  --slate:        #5E665E;
+  --muted:        #9A9587;
+  --border:       #E5DED0;
+  --border-soft:  #F0EADD;
+  --paper:        #F5F1E9;
+  --surface-alt:  #FCFAF5;
+  --surface:      #FFFFFF;
+
+  /* Status */
+  --status-ok-text:  #1E7A52;
+  --status-ok-bg:    #E4F1EA;
+  --status-warn-text:#B97D2B;
+  --status-warn-bg:  #F6EBD6;
+  --status-err-text: #A8473A;
+  --status-err-bg:   #F4E2DD;
+  --status-info-text:#3A6B8F;
+  --status-info-bg:  #E3ECF2;
+
+  /* Legacy aliases (used throughout components) */
+  --primary:   var(--pine);
+  --secondary: var(--paper);
+  --neutral:   var(--ink);
 }
 
-/* classes custom */
-.bg-primary { background-color: var(--primary); }
-.text-primary { color: var(--primary); }
+/* ─── UTILITY CLASSES ─── */
+.bg-primary   { background-color: var(--pine); }
+.text-primary { color: var(--pine); }
+.bg-secondary { background-color: var(--paper); }
+.text-secondary { color: var(--paper); }
+.bg-neutral   { background-color: var(--ink); }
+.text-neutral { color: var(--ink); }
 
-.bg-secondary { background-color: var(--secondary); }
-.text-secondary { color: var(--secondary); }
-
-.bg-neutral { background-color: var(--neutral); }
-.text-neutral { color: var(--neutral); }
-
-/* Déclaration de la font */
-@font-face {
-  font-family: "TulpenOne";
-  src: url("/fonts/Tulpen_One/TulpenOne-Regular.ttf") format("truetype");
-  font-weight: 400;
-  font-style: normal;
-}
-
-@font-face {
-  font-family: "RobotoFlex";
-  src: url("/fonts/Roboto_Flex/RobotoFlex.ttf") format("truetype");
-  font-weight: 400;
-  font-style: normal;
-}
-
-/* Optionnel : créer une variable pour la réutiliser */
+/* ─── TYPOGRAPHY ─── */
 :root {
-  --font-primary: "TulpenOne", sans-serif;
-  --font-secondary: 'RobotoFlex', sans-serif;
+  --font-primary:   'Schibsted Grotesk', sans-serif;
+  --font-secondary: 'Hanken Grotesk', sans-serif;
+  --font-accent:    'Newsreader', serif;
 }
 
-/* Classe custom Tailwind */
-.font-primary { font-family: var(--font-primary); }
+.font-primary   { font-family: var(--font-primary); }
 .font-secondary { font-family: var(--font-secondary); }
+.font-accent    { font-family: var(--font-accent); font-style: italic; }
+
+/* ─── BASE ─── */
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  background-color: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-secondary);
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background-color: var(--pine);
+  color: var(--paper);
+}
+
+/* ─── SCROLLBAR ─── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+/* ─── RESPONSIVE GRID UTILITIES ─── */
+.lp-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+
+.lp-grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.lp-nav-mid { display: flex; }
+
+@media (max-width: 768px) {
+  .lp-grid-2  { grid-template-columns: 1fr; }
+  .lp-grid-3  { grid-template-columns: 1fr; }
+  .lp-nav-mid { display: none; }
+  .lp-hide-mobile { display: none !important; }
+}
+
+/* ─── ADMIN RESPONSIVE ─── */
+@media (max-width: 640px) {
+  .admin-user-row {
+    flex-direction: column;
+    align-items: flex-start !important;
+    gap: 10px !important;
+  }
+  .admin-user-selects {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+  .admin-user-selects select {
+    flex: 1;
+    min-width: 0;
+  }
+}
+
+/* ─── INPUTS BASE ─── */
+input[type="date"]::-webkit-calendar-picker-indicator {
+  opacity: 0.4;
+  cursor: pointer;
+}

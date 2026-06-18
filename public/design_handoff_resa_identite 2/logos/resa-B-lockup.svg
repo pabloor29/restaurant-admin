@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="80" viewBox="0 0 320 80">
+  <g fill="none">
+    <circle cx="24" cy="40" r="18" stroke="#13503B" stroke-width="2.6"></circle>
+    <path d="M15 40.5 L21 46.5 L33.5 32.5" stroke="#C77E3A" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"></path>
+  </g>
+  <text x="58" y="40" font-family="&#39;Schibsted Grotesk&#39;, sans-serif" font-weight="700" font-size="46" letter-spacing="0.5" fill="#16201B" dominant-baseline="central">RESA</text>
+</svg>

@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="360" height="80" viewBox="0 0 360 80">
+  <rect x="0" y="15" width="50" height="50" rx="14" fill="#13503B"></rect>
+  <text x="25" y="41" font-family="&#39;Schibsted Grotesk&#39;, sans-serif" font-weight="800" font-size="29" letter-spacing="-1" fill="#F5F1E9" text-anchor="middle" dominant-baseline="central">R</text>
+  <text x="68" y="41" font-family="&#39;Schibsted Grotesk&#39;, sans-serif" font-weight="800" font-size="46" letter-spacing="-1.6" fill="#16201B" dominant-baseline="central">RESA<tspan fill="#C77E3A">.</tspan></text>
+</svg>

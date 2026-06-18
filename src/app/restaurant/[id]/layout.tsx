@@ -41,17 +41,24 @@ export default async function RestaurantLayout({
 
   return (
     <div className="min-h-screen bg-secondary">
-      <header className="px-6 pt-6" style={{ borderBottom: '1px solid rgba(252,238,239,0.08)' }}>
-        <div className="max-w-5xl mx-auto">
+      <header style={{ backgroundColor: 'var(--surface)', borderBottom: '1px solid var(--border)', padding: '16px 16px 0' }}>
+        <div style={{ maxWidth: 1080, margin: '0 auto' }}>
           <div className="flex items-center justify-between mb-5">
-            <h1 className="font-primary text-neutral" style={{ fontSize: '2.5rem', lineHeight: 1 }}>
-              {restaurant?.name ?? '—'}
-            </h1>
+            <div className="flex items-center gap-3">
+              <div
+                style={{ width: 32, height: 32, borderRadius: 9, backgroundColor: 'var(--pine)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
+              >
+                <span className="font-primary" style={{ fontSize: '1.1rem', color: 'var(--paper)', fontWeight: 800, letterSpacing: '-0.03em', lineHeight: 1 }}>R</span>
+              </div>
+              <h1 className="font-primary" style={{ fontSize: '1.4rem', fontWeight: 700, letterSpacing: '-0.01em', color: 'var(--ink)', lineHeight: 1 }}>
+                {restaurant?.name ?? '—'}
+              </h1>
+            </div>
             {isAdmin ? (
               <Link
                 href="/admin"
-                className="font-secondary text-sm"
-                style={{ color: 'rgba(252,238,239,0.35)' }}
+                className="font-secondary"
+                style={{ color: 'var(--slate)', fontSize: '0.85rem', textDecoration: 'none' }}
               >
                 ← Admin
               </Link>
@@ -62,8 +69,8 @@ export default async function RestaurantLayout({
           <RestaurantNav restaurantId={id} isAdmin={isAdmin} initialEnabled={initialEnabled} />
         </div>
       </header>
-      <main className="px-6 py-8">
-        <div className="max-w-5xl mx-auto">
+      <main style={{ padding: 'clamp(20px,4vw,32px) clamp(16px,3vw,24px)' }}>
+        <div style={{ maxWidth: 1080, margin: '0 auto' }}>
           {children}
         </div>
       </main>

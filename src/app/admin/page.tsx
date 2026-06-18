@@ -16,6 +16,8 @@ type User = {
   subscription_status: SubscriptionStatus
 }
 
+type Restaurant = { id: string; name: string }
+
 const STATUS_LABELS: Record<SubscriptionStatus, string> = {
   pending: 'En attente',
   active: 'Actif',
@@ -25,18 +27,24 @@ const STATUS_LABELS: Record<SubscriptionStatus, string> = {
   free: 'Gratuit',
 }
 
-const STATUS_COLORS: Record<SubscriptionStatus, string> = {
-  pending: 'rgba(252,238,239,0.3)',
-  active: '#4ade80',
-  trialing: '#facc15',
-  canceled: '#f87171',
-  past_due: '#f87171',
-  free: '#a78bfa',
+const STATUS_COLORS: Record<SubscriptionStatus, { text: string; bg: string }> = {
+  pending:  { text: 'var(--muted)',             bg: 'transparent' },
+  active:   { text: 'var(--status-ok-text)',    bg: 'var(--status-ok-bg)' },
+  trialing: { text: 'var(--status-warn-text)',  bg: 'var(--status-warn-bg)' },
+  canceled: { text: 'var(--status-err-text)',   bg: 'var(--status-err-bg)' },
+  past_due: { text: 'var(--status-err-text)',   bg: 'var(--status-err-bg)' },
+  free:     { text: 'var(--status-info-text)',  bg: 'var(--status-info-bg)' },
 }
 
-type Restaurant = {
-  id: string
-  name: string
+const inputStyle = {
+  border: '1.5px solid var(--border)',
+  borderRadius: 10,
+  padding: '11px 14px',
+  fontSize: '0.875rem',
+  color: 'var(--ink)',
+  backgroundColor: 'var(--surface)',
+  outline: 'none',
+  width: '100%',
 }
 
 export default function AdminPage() {
@@ -70,13 +78,11 @@ export default function AdminPage() {
     setCreating(true)
     setError('')
     setSuccess('')
-
     const res = await fetch('/api/admin/users', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password, restaurant_id: restaurantId || null }),
     })
-
     if (res.ok) {
       setSuccess(`Compte créé pour ${email}`)
       setEmail('')
@@ -108,43 +114,55 @@ export default function AdminPage() {
     loadData()
   }
 
+  const selectStyle = {
+    border: '1.5px solid var(--border)',
+    borderRadius: 8,
+    padding: '7px 10px',
+    fontSize: '0.8rem',
+    color: 'var(--ink)',
+    backgroundColor: 'var(--surface)',
+    outline: 'none',
+    cursor: 'pointer',
+  }
+
   return (
-    <div className="min-h-screen bg-secondary px-6 py-10">
-      <div className="max-w-2xl mx-auto">
+    <div className="min-h-screen bg-secondary">
+      <div className="max-w-2xl mx-auto px-6 py-10">
+        {/* Header */}
         <div className="flex justify-between items-center mb-10">
           <div>
-            <h1 className="font-primary text-neutral" style={{ fontSize: '3rem', lineHeight: 1 }}>
-              ADMIN
+            <h1 className="font-primary" style={{ fontSize: '2.4rem', fontWeight: 800, letterSpacing: '-0.03em', color: 'var(--ink)', lineHeight: 1 }}>
+              RESA<span style={{ color: 'var(--amber)' }}>.</span>
             </h1>
-            <p className="font-secondary text-neutral mt-1" style={{ opacity: 0.4, fontSize: '0.8rem', letterSpacing: '0.15em' }}>
-              GESTION DES UTILISATEURS
+            <p className="font-secondary mt-1" style={{ fontSize: '0.75rem', letterSpacing: '0.12em', color: 'var(--muted)', fontWeight: 600 }}>
+              ADMINISTRATION
             </p>
           </div>
           <button
             onClick={async () => { await supabase.auth.signOut(); router.push('/login') }}
-            className="font-secondary text-sm cursor-pointer"
-            style={{ color: 'rgba(252,238,239,0.3)', background: 'none', border: 'none' }}
+            className="font-secondary cursor-pointer"
+            style={{ color: 'var(--muted)', background: 'none', border: 'none', fontSize: '0.85rem' }}
           >
-            Se déconnecter
+            Déconnexion
           </button>
         </div>
 
-        {/* Accès aux restaurants */}
+        {/* Accès restaurants */}
         {restaurants.length > 0 && (
-          <div className="mb-10">
-            <h2 className="font-secondary text-neutral mb-4" style={{ fontSize: '0.8rem', letterSpacing: '0.12em', opacity: 0.6 }}>
+          <div className="mb-8">
+            <p className="font-secondary mb-3" style={{ fontSize: '0.72rem', letterSpacing: '0.12em', color: 'var(--muted)', fontWeight: 600 }}>
               RESTAURANTS
-            </h2>
+            </p>
             <div className="flex flex-col gap-2">
               {restaurants.map(r => (
                 <Link
                   key={r.id}
                   href={`/restaurant/${r.id}`}
-                  className="flex items-center justify-between p-4 rounded-lg transition-opacity hover:opacity-80"
-                  style={{ backgroundColor: 'rgba(252,238,239,0.05)', border: '1px solid rgba(252,238,239,0.1)', textDecoration: 'none' }}
+                  className="flex items-center justify-between p-4 transition-all"
+                  style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, textDecoration: 'none' }}
                 >
-                  <span className="font-secondary text-sm" style={{ color: 'var(--neutral)' }}>{r.name}</span>
-                  <span className="font-secondary text-xs" style={{ color: 'rgba(252,238,239,0.3)' }}>Accéder →</span>
+                  <span className="font-secondary" style={{ fontSize: '0.9rem', color: 'var(--ink)', fontWeight: 500 }}>{r.name}</span>
+                  <span className="font-secondary" style={{ fontSize: '0.8rem', color: 'var(--pine)' }}>Accéder →</span>
                 </Link>
               ))}
             </div>
@@ -152,115 +170,88 @@ export default function AdminPage() {
         )}
 
         {/* Créer un compte */}
-        <div className="mb-10 p-6 rounded-xl" style={{ backgroundColor: 'rgba(252,238,239,0.05)', border: '1px solid rgba(252,238,239,0.1)' }}>
-          <h2 className="font-secondary text-neutral mb-4" style={{ fontSize: '0.8rem', letterSpacing: '0.12em', opacity: 0.6 }}>
+        <div className="mb-8" style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, padding: '24px' }}>
+          <p className="font-secondary mb-4" style={{ fontSize: '0.72rem', letterSpacing: '0.12em', color: 'var(--muted)', fontWeight: 600 }}>
             CRÉER UN COMPTE
-          </h2>
+          </p>
           <form onSubmit={handleCreate} className="flex flex-col gap-3">
-            <input
-              type="email"
-              placeholder="Email"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              required
-              className="font-secondary rounded-lg px-4 py-3 outline-none text-sm"
-              style={{ backgroundColor: 'rgba(252,238,239,0.07)', border: '1px solid rgba(252,238,239,0.15)', color: 'var(--neutral)' }}
-            />
-            <input
-              type="password"
-              placeholder="Mot de passe temporaire"
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              required
-              minLength={6}
-              className="font-secondary rounded-lg px-4 py-3 outline-none text-sm"
-              style={{ backgroundColor: 'rgba(252,238,239,0.07)', border: '1px solid rgba(252,238,239,0.15)', color: 'var(--neutral)' }}
-            />
-            <select
-              value={restaurantId}
-              onChange={e => setRestaurantId(e.target.value)}
-              className="font-secondary rounded-lg px-4 py-3 outline-none text-sm cursor-pointer"
-              style={{ backgroundColor: 'rgba(252,238,239,0.07)', border: '1px solid rgba(252,238,239,0.15)', color: restaurantId ? 'var(--neutral)' : 'rgba(252,238,239,0.4)' }}
-            >
-              <option value="" style={{ backgroundColor: '#180607' }}>Restaurant (optionnel)</option>
-              {restaurants.map(r => (
-                <option key={r.id} value={r.id} style={{ backgroundColor: '#180607', color: '#FCEEEF' }}>{r.name}</option>
-              ))}
+            <input type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} required className="font-secondary" style={inputStyle} />
+            <input type="password" placeholder="Mot de passe temporaire" value={password} onChange={e => setPassword(e.target.value)} required minLength={6} className="font-secondary" style={inputStyle} />
+            <select value={restaurantId} onChange={e => setRestaurantId(e.target.value)} className="font-secondary" style={{ ...inputStyle, color: restaurantId ? 'var(--ink)' : 'var(--muted)' }}>
+              <option value="">Restaurant (optionnel)</option>
+              {restaurants.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
             </select>
 
-            {error && <p className="font-secondary text-sm text-center" style={{ color: 'var(--primary)' }}>{error}</p>}
-            {success && <p className="font-secondary text-sm text-center" style={{ color: 'var(--neutral)', opacity: 0.7 }}>{success}</p>}
+            {error && <p className="font-secondary text-sm" style={{ color: 'var(--status-err-text)', backgroundColor: 'var(--status-err-bg)', borderRadius: 8, padding: '8px 12px' }}>{error}</p>}
+            {success && <p className="font-secondary text-sm" style={{ color: 'var(--status-ok-text)', backgroundColor: 'var(--status-ok-bg)', borderRadius: 8, padding: '8px 12px' }}>{success}</p>}
 
-            <button
-              type="submit"
-              disabled={creating}
-              className="font-secondary py-3 rounded-lg transition-opacity cursor-pointer"
-              style={{ backgroundColor: 'var(--primary)', color: 'var(--neutral)', opacity: creating ? 0.5 : 1 }}
-            >
+            <button type="submit" disabled={creating} className="font-secondary cursor-pointer transition-all" style={{ backgroundColor: 'var(--pine)', color: 'var(--paper)', borderRadius: 10, padding: '12px', fontSize: '0.875rem', fontWeight: 600, border: 'none', opacity: creating ? 0.6 : 1 }}>
               {creating ? '...' : 'Créer le compte'}
             </button>
           </form>
         </div>
 
-        {/* Liste des utilisateurs */}
+        {/* Liste utilisateurs */}
         <div>
-          <h2 className="font-secondary text-neutral mb-4" style={{ fontSize: '0.8rem', letterSpacing: '0.12em', opacity: 0.6 }}>
+          <p className="font-secondary mb-3" style={{ fontSize: '0.72rem', letterSpacing: '0.12em', color: 'var(--muted)', fontWeight: 600 }}>
             UTILISATEURS {!loading && `(${users.length})`}
-          </h2>
+          </p>
           {loading ? (
-            <p className="font-secondary text-sm" style={{ color: 'rgba(252,238,239,0.4)' }}>Chargement...</p>
+            <p className="font-secondary" style={{ color: 'var(--muted)', fontSize: '0.875rem' }}>Chargement...</p>
           ) : (
             <div className="flex flex-col gap-2">
-              {users.map(u => (
-                <div
-                  key={u.id}
-                  className="flex items-center gap-3 p-4 rounded-lg"
-                  style={{ backgroundColor: 'rgba(252,238,239,0.05)', border: '1px solid rgba(252,238,239,0.1)' }}
-                >
-                  <div className="flex-1 min-w-0">
-                    <p className="font-secondary text-sm truncate" style={{ color: 'var(--neutral)' }}>
-                      {u.email}
-                      {u.is_admin && (
-                        <span className="ml-2 text-xs" style={{ color: 'var(--primary)', opacity: 0.8 }}>admin</span>
-                      )}
-                    </p>
-                    {!u.is_admin && (
-                      <p className="font-secondary text-xs mt-0.5" style={{ color: STATUS_COLORS[u.subscription_status] }}>
-                        {STATUS_LABELS[u.subscription_status]}
+              {users.map(u => {
+                const sc = STATUS_COLORS[u.subscription_status]
+                return (
+                  <div
+                    key={u.id}
+                    className="admin-user-row flex items-center gap-3 p-4"
+                    style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12 }}
+                  >
+                    <div className="flex-1 min-w-0">
+                      <p className="font-secondary truncate" style={{ fontSize: '0.875rem', color: 'var(--ink)', fontWeight: 500 }}>
+                        {u.email}
+                        {u.is_admin && (
+                          <span className="ml-2 font-secondary" style={{ fontSize: '0.72rem', color: 'var(--pine)', fontWeight: 600, backgroundColor: 'var(--pine-light)', padding: '2px 7px', borderRadius: 99 }}>admin</span>
+                        )}
                       </p>
+                      {!u.is_admin && (
+                        <span
+                          className="font-secondary inline-flex items-center mt-1"
+                          style={{ fontSize: '0.72rem', fontWeight: 600, color: sc.text, backgroundColor: sc.bg, padding: '2px 8px', borderRadius: 99 }}
+                        >
+                          {STATUS_LABELS[u.subscription_status]}
+                        </span>
+                      )}
+                    </div>
+                    {!u.is_admin && (
+                      <div className="admin-user-selects flex items-center gap-2 flex-shrink-0">
+                        <select
+                          value={u.subscription_status}
+                          onChange={e => handleStatusChange(u.id, e.target.value as SubscriptionStatus)}
+                          className="font-secondary"
+                          style={selectStyle}
+                        >
+                          {(Object.keys(STATUS_LABELS) as SubscriptionStatus[]).map(s => (
+                            <option key={s} value={s}>{STATUS_LABELS[s]}</option>
+                          ))}
+                        </select>
+                        <select
+                          value={u.restaurant_id ?? ''}
+                          onChange={e => handleAssign(u.id, e.target.value)}
+                          className="font-secondary"
+                          style={{ ...selectStyle, color: u.restaurant_id ? 'var(--ink)' : 'var(--muted)' }}
+                        >
+                          <option value="">Aucun restaurant</option>
+                          {restaurants.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+                        </select>
+                      </div>
                     )}
                   </div>
-                  {!u.is_admin && (
-                    <div className="flex items-center gap-2">
-                      <select
-                        value={u.subscription_status}
-                        onChange={e => handleStatusChange(u.id, e.target.value as SubscriptionStatus)}
-                        className="font-secondary text-xs rounded-lg px-2 py-1.5 outline-none cursor-pointer"
-                        style={{ backgroundColor: 'rgba(252,238,239,0.07)', border: '1px solid rgba(252,238,239,0.15)', color: 'rgba(252,238,239,0.6)' }}
-                      >
-                        {(Object.keys(STATUS_LABELS) as SubscriptionStatus[]).map(s => (
-                          <option key={s} value={s} style={{ backgroundColor: '#180607', color: '#FCEEEF' }}>
-                            {STATUS_LABELS[s]}
-                          </option>
-                        ))}
-                      </select>
-                      <select
-                        value={u.restaurant_id ?? ''}
-                        onChange={e => handleAssign(u.id, e.target.value)}
-                        className="font-secondary text-sm rounded-lg px-3 py-2 outline-none cursor-pointer"
-                        style={{ backgroundColor: 'rgba(252,238,239,0.07)', border: '1px solid rgba(252,238,239,0.15)', color: u.restaurant_id ? 'var(--neutral)' : 'rgba(252,238,239,0.4)' }}
-                      >
-                        <option value="" style={{ backgroundColor: '#180607' }}>Aucun restaurant</option>
-                        {restaurants.map(r => (
-                          <option key={r.id} value={r.id} style={{ backgroundColor: '#180607', color: '#FCEEEF' }}>{r.name}</option>
-                        ))}
-                      </select>
-                    </div>
-                  )}
-                </div>
-              ))}
+                )
+              })}
               {users.length === 0 && (
-                <p className="font-secondary text-sm" style={{ color: 'rgba(252,238,239,0.4)' }}>Aucun utilisateur.</p>
+                <p className="font-secondary" style={{ color: 'var(--muted)', fontSize: '0.875rem' }}>Aucun utilisateur.</p>
               )}
             </div>
           )}

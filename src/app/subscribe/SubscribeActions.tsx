@@ -24,33 +24,40 @@ export default function SubscribeActions() {
   }
 
   return (
-    <>
+    <div className="flex flex-col gap-3">
       {error && (
-        <p className="font-secondary text-sm text-center mb-4" style={{ color: 'var(--primary)' }}>
+        <p
+          className="font-secondary text-sm text-center"
+          style={{ color: 'var(--status-err-text)', backgroundColor: 'var(--status-err-bg)', borderRadius: 8, padding: '8px 12px' }}
+        >
           {error}
         </p>
       )}
       <button
         onClick={handleSubscribe}
         disabled={loading}
-        className="w-full font-secondary py-4 rounded-xl transition-opacity cursor-pointer"
+        className="w-full font-secondary cursor-pointer transition-all"
         style={{
-          backgroundColor: 'var(--primary)',
-          color: 'var(--neutral)',
-          opacity: loading ? 0.5 : 1,
-          fontSize: '0.85rem',
-          letterSpacing: '0.1em',
+          backgroundColor: 'var(--pine)',
+          color: 'var(--paper)',
+          borderRadius: 10,
+          padding: '13px 20px',
+          fontSize: '0.875rem',
+          fontWeight: 600,
+          border: 'none',
+          opacity: loading ? 0.6 : 1,
+          letterSpacing: '0.02em',
         }}
       >
-        {loading ? '...' : "S'ABONNER"}
+        {loading ? '...' : "S'abonner"}
       </button>
       <button
         onClick={async () => { await supabase.auth.signOut(); router.push('/login') }}
-        className="w-full font-secondary text-sm mt-4 cursor-pointer"
-        style={{ color: 'rgba(252,238,239,0.25)', background: 'none', border: 'none' }}
+        className="w-full font-secondary cursor-pointer"
+        style={{ color: 'var(--muted)', background: 'none', border: 'none', fontSize: '0.85rem', padding: '4px' }}
       >
         Se déconnecter
       </button>
-    </>
+    </div>
   )
 }

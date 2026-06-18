@@ -10,15 +10,23 @@ type Category = { id: string; name: string; position: number }
 type MenuFile = { id: string; file_path: string; category_id: string; position: number }
 
 const btnSecondary = {
-  backgroundColor: 'rgba(252,238,239,0.07)',
-  border: '1px solid rgba(252,238,239,0.12)',
-  color: 'rgba(252,238,239,0.7)',
+  backgroundColor: 'var(--surface)',
+  border: '1.5px solid var(--border)',
+  color: 'var(--slate)',
+  borderRadius: 8,
+  padding: '7px 14px',
+  fontSize: '0.8rem',
+  cursor: 'pointer',
 }
 
 const inputStyle = {
-  backgroundColor: 'rgba(252,238,239,0.07)',
-  border: '1px solid rgba(252,238,239,0.12)',
-  color: 'var(--neutral)',
+  border: '1.5px solid var(--border)',
+  borderRadius: 10,
+  padding: '10px 14px',
+  fontSize: '0.875rem',
+  color: 'var(--ink)',
+  backgroundColor: 'var(--surface)',
+  outline: 'none',
 }
 
 export default function MenusPage({ params }: { params: Promise<{ id: string }> }) {
@@ -164,36 +172,21 @@ export default function MenusPage({ params }: { params: Promise<{ id: string }> 
 
   return (
     <div>
-      <h2 className="font-secondary text-neutral mb-6" style={{ fontSize: '0.8rem', letterSpacing: '0.12em', opacity: 0.6 }}>
+      <h2 className="font-secondary mb-6" style={{ fontSize: '0.72rem', letterSpacing: '0.12em', color: 'var(--muted)', fontWeight: 600 }}>
         MENUS
       </h2>
 
-      {/* Créer une catégorie — admin seulement */}
       {isAdmin && (
         <form onSubmit={createCategory} className="flex gap-3 mb-8">
-          <input
-            type="text"
-            placeholder="Nom de la nouvelle catégorie"
-            value={newCatName}
-            onChange={e => setNewCatName(e.target.value)}
-            required
-            className="font-secondary text-sm rounded-lg px-4 py-2.5 outline-none flex-1"
-            style={inputStyle}
-          />
-          <button
-            type="submit"
-            disabled={creating}
-            className="font-secondary text-sm py-2.5 px-5 rounded-lg cursor-pointer transition-opacity flex-shrink-0"
-            style={{ backgroundColor: 'var(--primary)', color: 'var(--neutral)', opacity: creating ? 0.5 : 1 }}
-          >
+          <input type="text" placeholder="Nom de la nouvelle catégorie" value={newCatName} onChange={e => setNewCatName(e.target.value)} required className="font-secondary flex-1" style={inputStyle} />
+          <button type="submit" disabled={creating} className="font-secondary cursor-pointer flex-shrink-0" style={{ backgroundColor: 'var(--pine)', color: 'var(--paper)', borderRadius: 10, padding: '10px 20px', fontSize: '0.875rem', fontWeight: 600, border: 'none', opacity: creating ? 0.6 : 1 }}>
             {creating ? '...' : '+ Créer la catégorie'}
           </button>
         </form>
       )}
 
-      {/* Liste des catégories */}
       {categories.length === 0 ? (
-        <p className="font-secondary text-sm" style={{ color: 'rgba(252,238,239,0.3)' }}>
+        <p className="font-secondary" style={{ color: 'var(--muted)', fontSize: '0.875rem' }}>
           {isAdmin ? 'Aucune catégorie. Créez-en une ci-dessus.' : 'Aucune catégorie disponible.'}
         </p>
       ) : (
@@ -201,100 +194,45 @@ export default function MenusPage({ params }: { params: Promise<{ id: string }> 
           {categories.map(cat => {
             const files = categoryFiles[cat.id] || []
             const pending = newFiles[cat.id] || []
-
             return (
-              <div key={cat.id} className="rounded-xl p-5" style={{ backgroundColor: 'rgba(252,238,239,0.05)', border: '1px solid rgba(252,238,239,0.1)' }}>
-                {/* Header */}
+              <div key={cat.id} className="rounded-xl p-5" style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)' }}>
                 <div className="flex items-center justify-between mb-4">
-                  <p className="font-secondary text-sm" style={{ color: 'var(--neutral)' }}>
-                    {cat.name}
-                  </p>
+                  <p className="font-secondary" style={{ fontSize: '0.95rem', color: 'var(--ink)', fontWeight: 600 }}>{cat.name}</p>
                   {isAdmin && (
-                    <button
-                      onClick={() => deleteCategory(cat)}
-                      className="font-secondary text-xs px-3 py-1.5 rounded-lg cursor-pointer transition-opacity hover:opacity-70"
-                      style={{ backgroundColor: 'rgba(220,50,50,0.1)', border: '1px solid rgba(220,50,50,0.25)', color: 'rgba(252,238,239,0.5)' }}
-                    >
+                    <button onClick={() => deleteCategory(cat)} className="font-secondary cursor-pointer" style={{ backgroundColor: 'var(--status-err-bg)', border: '1px solid rgba(168,71,58,0.2)', borderRadius: 8, padding: '5px 12px', fontSize: '0.78rem', color: 'var(--status-err-text)' }}>
                       Supprimer la catégorie
                     </button>
                   )}
                 </div>
-
-                {/* Fichiers avec ordre */}
                 {files.length > 0 ? (
                   <div className="space-y-1.5 mb-4">
                     {files.map((f, i) => {
                       const { data } = supabase.storage.from('menus').getPublicUrl(f.file_path)
                       const fileName = f.file_path.split('/').pop() ?? f.file_path
                       return (
-                        <div key={f.id} className="flex items-center gap-2 py-1.5 px-3 rounded-lg" style={{ backgroundColor: 'rgba(252,238,239,0.04)', border: '1px solid rgba(252,238,239,0.07)' }}>
+                        <div key={f.id} className="flex items-center gap-2 py-1.5 px-3 rounded-lg" style={{ backgroundColor: 'var(--surface-alt)', border: '1px solid var(--border-soft)' }}>
                           <div className="flex flex-col gap-0.5 flex-shrink-0">
-                            <button
-                              onClick={() => move(cat.id, i, 'up')}
-                              disabled={i === 0}
-                              className="font-secondary px-1.5 py-0.5 rounded cursor-pointer transition-opacity"
-                              style={{ ...btnSecondary, opacity: i === 0 ? 0.2 : 1, fontSize: '0.6rem' }}
-                            >↑</button>
-                            <button
-                              onClick={() => move(cat.id, i, 'down')}
-                              disabled={i === files.length - 1}
-                              className="font-secondary px-1.5 py-0.5 rounded cursor-pointer transition-opacity"
-                              style={{ ...btnSecondary, opacity: i === files.length - 1 ? 0.2 : 1, fontSize: '0.6rem' }}
-                            >↓</button>
+                            <button onClick={() => move(cat.id, i, 'up')} disabled={i === 0} className="font-secondary" style={{ ...btnSecondary, padding: '2px 6px', fontSize: '0.6rem', opacity: i === 0 ? 0.2 : 1 }}>↑</button>
+                            <button onClick={() => move(cat.id, i, 'down')} disabled={i === files.length - 1} className="font-secondary" style={{ ...btnSecondary, padding: '2px 6px', fontSize: '0.6rem', opacity: i === files.length - 1 ? 0.2 : 1 }}>↓</button>
                           </div>
-                          <span className="font-secondary text-xs w-5 text-center flex-shrink-0" style={{ color: 'rgba(252,238,239,0.2)' }}>
-                            {i + 1}
-                          </span>
-                          <a
-                            href={data.publicUrl}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="font-secondary text-sm flex-1 truncate hover:opacity-70 transition-opacity"
-                            style={{ color: 'rgba(252,238,239,0.55)' }}
-                          >
-                            {fileName}
-                          </a>
-                          <button
-                            onClick={() => deleteFile(f)}
-                            className="font-secondary text-sm flex-shrink-0 cursor-pointer hover:opacity-70 transition-opacity"
-                            style={{ color: 'rgba(220,80,80,0.7)', background: 'none', border: 'none' }}
-                          >×</button>
+                          <span className="font-secondary w-5 text-center flex-shrink-0" style={{ fontSize: '0.72rem', color: 'var(--muted)' }}>{i + 1}</span>
+                          <a href={data.publicUrl} target="_blank" rel="noreferrer" className="font-secondary flex-1 truncate" style={{ fontSize: '0.85rem', color: 'var(--slate)', textDecoration: 'none' }}>{fileName}</a>
+                          <button onClick={() => deleteFile(f)} className="font-secondary flex-shrink-0 cursor-pointer" style={{ color: 'var(--status-err-text)', background: 'none', border: 'none', fontSize: '1.1rem', lineHeight: 1 }}>×</button>
                         </div>
                       )
                     })}
                   </div>
                 ) : (
-                  <p className="font-secondary text-xs mb-4" style={{ color: 'rgba(252,238,239,0.2)' }}>
-                    Aucun fichier dans cette catégorie.
-                  </p>
+                  <p className="font-secondary mb-4" style={{ fontSize: '0.8rem', color: 'var(--muted)' }}>Aucun fichier dans cette catégorie.</p>
                 )}
-
-                {/* Upload */}
                 <div className="flex items-center gap-3 flex-wrap">
-                  <label
-                    className="font-secondary text-sm px-4 py-2 rounded-lg cursor-pointer inline-block transition-opacity hover:opacity-80"
-                    style={btnSecondary}
-                  >
+                  <label className="font-secondary cursor-pointer inline-block" style={btnSecondary}>
                     Ajouter des fichiers
-                    <input
-                      type="file"
-                      multiple
-                      accept="image/*,application/pdf"
-                      onChange={e => handleFileChange(cat.id, e)}
-                      className="hidden"
-                    />
+                    <input type="file" multiple accept="image/*,application/pdf" onChange={e => handleFileChange(cat.id, e)} className="hidden" />
                   </label>
                   {pending.length > 0 && (
-                    <button
-                      onClick={() => uploadForCategory(cat.id)}
-                      disabled={uploading === cat.id}
-                      className="font-secondary text-sm py-2 px-4 rounded-lg cursor-pointer transition-opacity"
-                      style={{ backgroundColor: 'var(--primary)', color: 'var(--neutral)', opacity: uploading === cat.id ? 0.6 : 1 }}
-                    >
-                      {uploading === cat.id
-                        ? (status || '...')
-                        : `Enregistrer (${pending.length} fichier${pending.length > 1 ? 's' : ''})`
-                      }
+                    <button onClick={() => uploadForCategory(cat.id)} disabled={uploading === cat.id} className="font-secondary cursor-pointer" style={{ backgroundColor: 'var(--pine)', color: 'var(--paper)', borderRadius: 8, padding: '7px 16px', fontSize: '0.8rem', fontWeight: 600, border: 'none', opacity: uploading === cat.id ? 0.6 : 1 }}>
+                      {uploading === cat.id ? (status || '...') : `Enregistrer (${pending.length} fichier${pending.length > 1 ? 's' : ''})`}
                     </button>
                   )}
                 </div>
@@ -305,7 +243,7 @@ export default function MenusPage({ params }: { params: Promise<{ id: string }> 
       )}
 
       {message && (
-        <p className="font-secondary text-sm mt-4" style={{ color: message.includes('Erreur') ? 'var(--primary)' : 'rgba(252,238,239,0.6)' }}>
+        <p className="font-secondary mt-4" style={{ fontSize: '0.875rem', color: message.includes('Erreur') ? 'var(--status-err-text)' : 'var(--status-ok-text)', backgroundColor: message.includes('Erreur') ? 'var(--status-err-bg)' : 'var(--status-ok-bg)', borderRadius: 8, padding: '8px 12px', display: 'inline-block' }}>
           {message}
         </p>
       )}

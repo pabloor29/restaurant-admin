@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="260" height="120" viewBox="0 0 260 120">
+  <text x="130" y="40" font-family="&#39;Schibsted Grotesk&#39;, sans-serif" font-weight="600" font-size="36" letter-spacing="8.6" fill="#16201B" text-anchor="middle" dominant-baseline="central">RESA</text>
+  <line x1="78" y1="72" x2="113" y2="72" stroke="#C9C0AD" stroke-width="1"></line>
+  <rect x="126.5" y="68.5" width="7" height="7" fill="#C77E3A" transform="rotate(45 130 72)"></rect>
+  <line x1="147" y1="72" x2="182" y2="72" stroke="#C9C0AD" stroke-width="1"></line>
+  <text x="130" y="94" font-family="&#39;Newsreader&#39;, serif" font-style="italic" font-weight="500" font-size="15" fill="#5E665E" text-anchor="middle" dominant-baseline="central">Maison de réservation</text>
+</svg>

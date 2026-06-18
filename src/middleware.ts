@@ -2,7 +2,8 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
-const PUBLIC_ROUTES = ['/login']
+const PUBLIC_ROUTES = ['/login', '/']
+const PUBLIC_API_PREFIXES = ['/api/contact', '/api/stripe/webhook']
 const SETUP_ROUTE = '/setup'
 const SUBSCRIBE_ROUTE = '/subscribe'
 const ACTIVE_STATUSES = ['active', 'trialing', 'free']
@@ -41,6 +42,11 @@ export async function middleware(request: NextRequest) {
   }
 
   const path = request.nextUrl.pathname
+
+  // Routes API publiques (pas d'auth requise)
+  if (PUBLIC_API_PREFIXES.some(prefix => path.startsWith(prefix))) {
+    return supabaseResponse
+  }
 
   // Utilisateur non connecté
   if (!user) {

@@ -15,8 +15,8 @@ export default function LogoutButton() {
   return (
     <button
       onClick={handleLogout}
-      className="font-secondary text-sm cursor-pointer"
-      style={{ color: 'rgba(252,238,239,0.35)' }}
+      className="font-secondary cursor-pointer"
+      style={{ color: 'var(--slate)', background: 'none', border: 'none', fontSize: '0.85rem' }}
     >
       Déconnexion
     </button>

@@ -8,12 +8,12 @@ import { createClient } from '../../../../lib/supabase/client'
 const supabase = createClient()
 
 const ALL_SECTIONS = [
-  { path: '/horaires', label: 'Horaires', key: 'horaires' },
-  { path: '/fermetures', label: 'Fermetures', key: 'fermetures' },
-  { path: '/conges', label: 'Congés', key: 'conges' },
-  { path: '/formules', label: 'Formules', key: 'formules' },
-  { path: '/menus', label: 'Menus', key: 'menus' },
-  { path: '/evenements', label: 'Évènements', key: 'evenements' },
+  { path: '/horaires',   label: 'Horaires',    key: 'horaires' },
+  { path: '/fermetures', label: 'Fermetures',  key: 'fermetures' },
+  { path: '/conges',     label: 'Congés',      key: 'conges' },
+  { path: '/formules',   label: 'Formules',    key: 'formules' },
+  { path: '/menus',      label: 'Menus',       key: 'menus' },
+  { path: '/evenements', label: 'Évènements',  key: 'evenements' },
 ]
 
 const STATIC_SECTIONS = [
@@ -47,7 +47,7 @@ export default function RestaurantNav({
 
   return (
     <div>
-      <nav className="flex overflow-x-auto" style={{ marginBottom: isAdmin ? '6px' : '-1px' }}>
+      <nav className="flex overflow-x-auto" style={{ marginBottom: isAdmin ? '6px' : 0, gap: 2 }}>
         {visibleSections.map(({ path, label, key }) => {
           const href = `/restaurant/${restaurantId}${path}`
           const isActive = pathname.startsWith(href)
@@ -56,10 +56,14 @@ export default function RestaurantNav({
             <Link
               key={path}
               href={href}
-              className="font-secondary text-sm whitespace-nowrap px-4 py-3 transition-colors"
+              className="font-secondary whitespace-nowrap transition-colors"
               style={{
-                color: isActive ? 'var(--neutral)' : 'rgba(252,238,239,0.4)',
-                borderBottom: isActive ? '2px solid var(--primary)' : '2px solid transparent',
+                fontSize: '0.875rem',
+                fontWeight: isActive ? 600 : 400,
+                color: isActive ? 'var(--pine)' : 'var(--slate)',
+                borderBottom: isActive ? '2px solid var(--pine)' : '2px solid transparent',
+                padding: '10px 14px',
+                textDecoration: 'none',
                 opacity: isDisabled ? 0.35 : 1,
               }}
             >
@@ -74,10 +78,14 @@ export default function RestaurantNav({
             <Link
               key={path}
               href={href}
-              className="font-secondary text-sm whitespace-nowrap px-4 py-3 transition-colors"
+              className="font-secondary whitespace-nowrap transition-colors"
               style={{
-                color: isActive ? 'var(--neutral)' : 'rgba(252,238,239,0.4)',
-                borderBottom: isActive ? '2px solid var(--primary)' : '2px solid transparent',
+                fontSize: '0.875rem',
+                fontWeight: isActive ? 600 : 400,
+                color: isActive ? 'var(--pine)' : 'var(--slate)',
+                borderBottom: isActive ? '2px solid var(--pine)' : '2px solid transparent',
+                padding: '10px 14px',
+                textDecoration: 'none',
               }}
             >
               {label}
@@ -94,37 +102,35 @@ export default function RestaurantNav({
               <button
                 key={key}
                 onClick={() => toggle(key)}
-                className="flex items-center gap-2 px-3 py-1 rounded-full cursor-pointer transition-all flex-shrink-0"
+                className="flex items-center gap-2 flex-shrink-0 cursor-pointer transition-all"
                 style={{
-                  backgroundColor: isOn ? 'rgba(252,238,239,0.08)' : 'rgba(252,238,239,0.03)',
-                  border: `1px solid ${isOn ? 'rgba(252,238,239,0.18)' : 'rgba(252,238,239,0.07)'}`,
+                  padding: '5px 10px',
+                  borderRadius: 99,
+                  backgroundColor: isOn ? 'var(--pine-light)' : 'rgba(22,32,27,0.04)',
+                  border: `1px solid ${isOn ? 'rgba(19,80,59,0.2)' : 'var(--border)'}`,
                 }}
               >
-                {/* Toggle switch */}
                 <span
                   className="relative flex-shrink-0 rounded-full transition-colors"
                   style={{
-                    width: '24px',
-                    height: '13px',
-                    backgroundColor: isOn ? 'var(--primary)' : 'rgba(252,238,239,0.12)',
+                    width: 24,
+                    height: 13,
+                    backgroundColor: isOn ? 'var(--pine)' : 'var(--border)',
                   }}
                 >
                   <span
                     className="absolute top-0.5 rounded-full transition-all"
                     style={{
-                      width: '9px',
-                      height: '9px',
+                      width: 9,
+                      height: 9,
                       backgroundColor: 'white',
-                      left: isOn ? '12px' : '2px',
+                      left: isOn ? 12 : 2,
                     }}
                   />
                 </span>
                 <span
                   className="font-secondary whitespace-nowrap"
-                  style={{
-                    fontSize: '0.65rem',
-                    color: isOn ? 'rgba(252,238,239,0.6)' : 'rgba(252,238,239,0.2)',
-                  }}
+                  style={{ fontSize: '0.72rem', fontWeight: 500, color: isOn ? 'var(--pine)' : 'var(--muted)' }}
                 >
                   {label}
                 </span>
