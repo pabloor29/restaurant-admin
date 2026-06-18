@@ -16,6 +16,10 @@ const ALL_SECTIONS = [
   { path: '/evenements', label: 'Évènements', key: 'evenements' },
 ]
 
+const STATIC_SECTIONS = [
+  { path: '/billing', label: 'Abonnement' },
+]
+
 export default function RestaurantNav({
   restaurantId,
   isAdmin,
@@ -57,6 +61,23 @@ export default function RestaurantNav({
                 color: isActive ? 'var(--neutral)' : 'rgba(252,238,239,0.4)',
                 borderBottom: isActive ? '2px solid var(--primary)' : '2px solid transparent',
                 opacity: isDisabled ? 0.35 : 1,
+              }}
+            >
+              {label}
+            </Link>
+          )
+        })}
+        {!isAdmin && STATIC_SECTIONS.map(({ path, label }) => {
+          const href = `/restaurant/${restaurantId}${path}`
+          const isActive = pathname.startsWith(href)
+          return (
+            <Link
+              key={path}
+              href={href}
+              className="font-secondary text-sm whitespace-nowrap px-4 py-3 transition-colors"
+              style={{
+                color: isActive ? 'var(--neutral)' : 'rgba(252,238,239,0.4)',
+                borderBottom: isActive ? '2px solid var(--primary)' : '2px solid transparent',
               }}
             >
               {label}

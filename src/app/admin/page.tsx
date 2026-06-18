@@ -5,12 +5,33 @@ import { createClient } from '../../../lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 
+type SubscriptionStatus = 'pending' | 'active' | 'trialing' | 'canceled' | 'past_due' | 'free'
+
 type User = {
   id: string
   email: string
   restaurant_id: string | null
   restaurant_name: string | null
   is_admin: boolean
+  subscription_status: SubscriptionStatus
+}
+
+const STATUS_LABELS: Record<SubscriptionStatus, string> = {
+  pending: 'En attente',
+  active: 'Actif',
+  trialing: 'Essai',
+  canceled: 'Annulé',
+  past_due: 'Impayé',
+  free: 'Gratuit',
+}
+
+const STATUS_COLORS: Record<SubscriptionStatus, string> = {
+  pending: 'rgba(252,238,239,0.3)',
+  active: '#4ade80',
+  trialing: '#facc15',
+  canceled: '#f87171',
+  past_due: '#f87171',
+  free: '#a78bfa',
 }
 
 type Restaurant = {
@@ -74,6 +95,15 @@ export default function AdminPage() {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ user_id: userId, restaurant_id: newRestaurantId || null }),
+    })
+    loadData()
+  }
+
+  async function handleStatusChange(userId: string, newStatus: SubscriptionStatus) {
+    await fetch('/api/admin/users', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: userId, subscription_status: newStatus }),
     })
     loadData()
   }
@@ -194,19 +224,38 @@ export default function AdminPage() {
                         <span className="ml-2 text-xs" style={{ color: 'var(--primary)', opacity: 0.8 }}>admin</span>
                       )}
                     </p>
+                    {!u.is_admin && (
+                      <p className="font-secondary text-xs mt-0.5" style={{ color: STATUS_COLORS[u.subscription_status] }}>
+                        {STATUS_LABELS[u.subscription_status]}
+                      </p>
+                    )}
                   </div>
                   {!u.is_admin && (
-                    <select
-                      value={u.restaurant_id ?? ''}
-                      onChange={e => handleAssign(u.id, e.target.value)}
-                      className="font-secondary text-sm rounded-lg px-3 py-2 outline-none cursor-pointer"
-                      style={{ backgroundColor: 'rgba(252,238,239,0.07)', border: '1px solid rgba(252,238,239,0.15)', color: u.restaurant_id ? 'var(--neutral)' : 'rgba(252,238,239,0.4)' }}
-                    >
-                      <option value="" style={{ backgroundColor: '#180607' }}>Aucun restaurant</option>
-                      {restaurants.map(r => (
-                        <option key={r.id} value={r.id} style={{ backgroundColor: '#180607', color: '#FCEEEF' }}>{r.name}</option>
-                      ))}
-                    </select>
+                    <div className="flex items-center gap-2">
+                      <select
+                        value={u.subscription_status}
+                        onChange={e => handleStatusChange(u.id, e.target.value as SubscriptionStatus)}
+                        className="font-secondary text-xs rounded-lg px-2 py-1.5 outline-none cursor-pointer"
+                        style={{ backgroundColor: 'rgba(252,238,239,0.07)', border: '1px solid rgba(252,238,239,0.15)', color: 'rgba(252,238,239,0.6)' }}
+                      >
+                        {(Object.keys(STATUS_LABELS) as SubscriptionStatus[]).map(s => (
+                          <option key={s} value={s} style={{ backgroundColor: '#180607', color: '#FCEEEF' }}>
+                            {STATUS_LABELS[s]}
+                          </option>
+                        ))}
+                      </select>
+                      <select
+                        value={u.restaurant_id ?? ''}
+                        onChange={e => handleAssign(u.id, e.target.value)}
+                        className="font-secondary text-sm rounded-lg px-3 py-2 outline-none cursor-pointer"
+                        style={{ backgroundColor: 'rgba(252,238,239,0.07)', border: '1px solid rgba(252,238,239,0.15)', color: u.restaurant_id ? 'var(--neutral)' : 'rgba(252,238,239,0.4)' }}
+                      >
+                        <option value="" style={{ backgroundColor: '#180607' }}>Aucun restaurant</option>
+                        {restaurants.map(r => (
+                          <option key={r.id} value={r.id} style={{ backgroundColor: '#180607', color: '#FCEEEF' }}>{r.name}</option>
+                        ))}
+                      </select>
+                    </div>
                   )}
                 </div>
               ))}

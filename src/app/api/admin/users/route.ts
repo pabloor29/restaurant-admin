@@ -29,7 +29,7 @@ export async function GET() {
   const admin = getAdminClient()
   const [{ data: authData }, { data: profiles }] = await Promise.all([
     admin.auth.admin.listUsers(),
-    admin.from('profiles').select('id, restaurant_id, is_admin, restaurants(name)'),
+    admin.from('profiles').select('id, restaurant_id, is_admin, subscription_status, restaurants(name)'),
   ])
 
   const users = (authData?.users ?? []).map(u => {
@@ -40,6 +40,7 @@ export async function GET() {
       restaurant_id: profile?.restaurant_id ?? null,
       restaurant_name: (profile?.restaurants as unknown as { name: string } | null)?.name ?? null,
       is_admin: profile?.is_admin ?? false,
+      subscription_status: profile?.subscription_status ?? 'pending',
     }
   })
 
@@ -75,12 +76,16 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
-  const { user_id, restaurant_id } = await request.json()
+  const { user_id, restaurant_id, subscription_status } = await request.json()
   const admin = getAdminClient()
+
+  const updates: Record<string, unknown> = {}
+  if (restaurant_id !== undefined) updates.restaurant_id = restaurant_id || null
+  if (subscription_status !== undefined) updates.subscription_status = subscription_status
 
   await admin
     .from('profiles')
-    .update({ restaurant_id: restaurant_id || null })
+    .update(updates)
     .eq('id', user_id)
 
   return NextResponse.json({ success: true })

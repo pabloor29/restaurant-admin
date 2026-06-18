@@ -4,6 +4,8 @@ import type { NextRequest } from 'next/server'
 
 const PUBLIC_ROUTES = ['/login']
 const SETUP_ROUTE = '/setup'
+const SUBSCRIBE_ROUTE = '/subscribe'
+const ACTIVE_STATUSES = ['active', 'trialing', 'free']
 
 export async function middleware(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request })
@@ -49,20 +51,22 @@ export async function middleware(request: NextRequest) {
   // Utilisateur connecté — vérifier le profil
   const { data: profile } = await supabase
     .from('profiles')
-    .select('restaurant_id, is_admin')
+    .select('restaurant_id, is_admin, subscription_status')
     .eq('id', user.id)
     .single()
 
   const isAdmin = !!profile?.is_admin
   const hasRestaurant = !!profile?.restaurant_id
-
   const restaurantId = profile?.restaurant_id as string | null
+  const subscriptionStatus = profile?.subscription_status as string | null
+  const hasActiveSubscription = ACTIVE_STATUSES.includes(subscriptionStatus ?? '')
 
   // Sur /login avec une session valide → rediriger selon le rôle
   if (PUBLIC_ROUTES.includes(path)) {
     if (isAdmin) return NextResponse.redirect(new URL('/admin', request.url))
-    if (hasRestaurant) return NextResponse.redirect(new URL(`/restaurant/${restaurantId}`, request.url))
-    return NextResponse.redirect(new URL(SETUP_ROUTE, request.url))
+    if (!hasRestaurant) return NextResponse.redirect(new URL(SETUP_ROUTE, request.url))
+    if (!hasActiveSubscription) return NextResponse.redirect(new URL(SUBSCRIBE_ROUTE, request.url))
+    return NextResponse.redirect(new URL(`/restaurant/${restaurantId}`, request.url))
   }
 
   // Routes /admin réservées à l'administrateur
@@ -70,9 +74,11 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/login', request.url))
   }
 
-  // Admin : accès libre à tout sauf /setup et /
+  // Admin : accès libre à tout sauf /setup, /subscribe et /
   if (isAdmin) {
-    if (path === SETUP_ROUTE || path === '/') return NextResponse.redirect(new URL('/admin', request.url))
+    if (path === SETUP_ROUTE || path === SUBSCRIBE_ROUTE || path === '/') {
+      return NextResponse.redirect(new URL('/admin', request.url))
+    }
     return supabaseResponse
   }
 
@@ -82,8 +88,16 @@ export async function middleware(request: NextRequest) {
     return supabaseResponse
   }
 
-  // Utilisateur avec restaurant : rediriger / et /setup vers son restaurant
-  if (path === '/' || path === SETUP_ROUTE) {
+  // Utilisateur avec restaurant mais sans abonnement actif → /subscribe
+  if (!hasActiveSubscription) {
+    if (!path.startsWith(SUBSCRIBE_ROUTE)) {
+      return NextResponse.redirect(new URL(SUBSCRIBE_ROUTE, request.url))
+    }
+    return supabaseResponse
+  }
+
+  // Utilisateur avec restaurant et abonnement actif : rediriger / et /setup vers son restaurant
+  if (path === '/' || path === SETUP_ROUTE || path === SUBSCRIBE_ROUTE) {
     return NextResponse.redirect(new URL(`/restaurant/${restaurantId}`, request.url))
   }
 
