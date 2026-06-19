@@ -34,7 +34,7 @@ export async function GET(
   const admin = getAdminClient()
 
   const [{ data: restaurant }, { data: profile }] = await Promise.all([
-    admin.from('restaurants').select('name, phone, address').eq('id', restaurantId).single(),
+    admin.from('restaurants').select('name, phone, address, email').eq('id', restaurantId).single(),
     admin.from('profiles').select('subscription_status').eq('restaurant_id', restaurantId).neq('is_admin', true).single(),
   ])
 
@@ -42,6 +42,7 @@ export async function GET(
     name: restaurant?.name ?? '',
     phone: restaurant?.phone ?? '',
     address: restaurant?.address ?? '',
+    email: restaurant?.email ?? '',
     subscription_status: profile?.subscription_status ?? 'pending',
   })
 }
@@ -54,12 +55,12 @@ export async function PATCH(
   const user = await getAuthorizedUser(restaurantId)
   if (!user) return NextResponse.json({ error: 'Non autorisé' }, { status: 403 })
 
-  const { phone, address } = await request.json()
+  const { phone, address, email } = await request.json()
   const admin = getAdminClient()
 
   const { error } = await admin
     .from('restaurants')
-    .update({ phone: phone || null, address: address || null })
+    .update({ phone: phone || null, address: address || null, email: email || null })
     .eq('id', restaurantId)
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })

@@ -39,6 +39,7 @@ export default function InfosPage({ params }: { params: Promise<{ id: string }> 
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
   const [address, setAddress] = useState('')
+  const [email, setEmail] = useState('')
   const [status, setStatus] = useState<Status>('pending')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -52,6 +53,7 @@ export default function InfosPage({ params }: { params: Promise<{ id: string }> 
         setName(data.name ?? '')
         setPhone(data.phone ?? '')
         setAddress(data.address ?? '')
+        setEmail(data.email ?? '')
         setStatus((data.subscription_status as Status) ?? 'pending')
         setLoading(false)
       })
@@ -64,7 +66,7 @@ export default function InfosPage({ params }: { params: Promise<{ id: string }> 
     const res = await fetch(`/api/restaurant/${restaurantId}/infos`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ phone, address }),
+      body: JSON.stringify({ phone, address, email }),
     })
     setMessage(res.ok ? 'Informations enregistrées.' : 'Erreur lors de la sauvegarde.')
     setSaving(false)
@@ -130,6 +132,19 @@ export default function InfosPage({ params }: { params: Promise<{ id: string }> 
                 rows={3}
                 className="font-secondary"
                 style={{ ...inputStyle, resize: 'none' }}
+                onFocus={e => { e.target.style.borderColor = 'var(--pine)' }}
+                onBlur={e => { e.target.style.borderColor = 'var(--border)' }}
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label className="font-secondary" style={{ fontSize: '0.72rem', fontWeight: 600, color: 'var(--muted)', letterSpacing: '0.08em' }}>ADRESSE MAIL</label>
+              <input
+                type="email"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                placeholder="contact@monrestaurant.fr"
+                className="font-secondary"
+                style={inputStyle}
                 onFocus={e => { e.target.style.borderColor = 'var(--pine)' }}
                 onBlur={e => { e.target.style.borderColor = 'var(--border)' }}
               />

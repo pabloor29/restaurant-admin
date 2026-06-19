@@ -68,6 +68,17 @@ export async function POST(request: NextRequest) {
     restaurant_id: restaurant_id || null,
   })
 
+  if (restaurant_id) {
+    const { data: restaurant } = await admin
+      .from('restaurants')
+      .select('email')
+      .eq('id', restaurant_id)
+      .single()
+    if (!restaurant?.email) {
+      await admin.from('restaurants').update({ email }).eq('id', restaurant_id)
+    }
+  }
+
   return NextResponse.json({ success: true })
 }
 
