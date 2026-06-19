@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import ContactForm from './ContactForm'
+import { ResaPlayerWrapper } from '../../components/ResaPlayerWrapper'
 
 const FEATURES = [
   {
@@ -173,24 +174,37 @@ export default function HomePage() {
       </nav>
 
       {/* HERO */}
-      <section style={{ maxWidth: 1080, margin: '0 auto', padding: 'clamp(48px,8vw,80px) 24px 48px' }}>
-        <div style={{ maxWidth: 640 }}>
-          <p className="font-secondary" style={{ fontSize: '0.8rem', letterSpacing: '0.12em', color: 'var(--pine)', fontWeight: 600, marginBottom: 16 }}>
-            DÉVELOPPEUR WEB · RESTAURATEURS
-          </p>
-          <h1 className="font-primary" style={{ fontSize: 'clamp(3rem,8vw,5.5rem)', lineHeight: 0.95, fontWeight: 800, letterSpacing: '-0.04em', color: 'var(--ink)', marginBottom: 24 }}>
-            L&apos;espace admin qui pilote votre restaurant.
-          </h1>
-          <p className="font-secondary" style={{ fontSize: '1.1rem', color: 'var(--slate)', lineHeight: 1.6, marginBottom: 36, maxWidth: 500 }}>
-            Site web sur-mesure, réservations automatisées et espace d&apos;administration — tout-en-un, sans abonnement complexe.
-          </p>
-          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
-            <Link href="#offre" className="font-secondary" style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--paper)', backgroundColor: 'var(--pine)', padding: '13px 28px', borderRadius: 10, textDecoration: 'none' }}>
-              Découvrir l&apos;offre →
-            </Link>
-            <Link href="#fonctionnalites" className="font-secondary" style={{ fontSize: '0.9rem', fontWeight: 500, color: 'var(--pine)', padding: '12px 20px', borderRadius: 10, textDecoration: 'none', border: '1.5px solid var(--pine)' }}>
-              Voir les fonctionnalités
-            </Link>
+      <section style={{ maxWidth: 1080, margin: '0 auto', padding: 'clamp(48px,8vw,80px) 24px 40px' }}>
+        <div className="lp-grid-2" style={{ gap: 'clamp(32px,5vw,64px)', alignItems: 'center' }}>
+          {/* Texte */}
+          <div>
+            <p className="font-secondary" style={{ fontSize: '0.8rem', letterSpacing: '0.12em', color: 'var(--pine)', fontWeight: 600, marginBottom: 16 }}>
+              DÉVELOPPEUR WEB · RESTAURATEURS
+            </p>
+            <h1 className="font-primary" style={{ fontSize: 'clamp(2.4rem,6vw,4.2rem)', lineHeight: 0.95, fontWeight: 800, letterSpacing: '-0.04em', color: 'var(--ink)', marginBottom: 24 }}>
+              L&apos;espace admin qui pilote votre restaurant.
+            </h1>
+            <p className="font-secondary" style={{ fontSize: '1.05rem', color: 'var(--slate)', lineHeight: 1.6, marginBottom: 36 }}>
+              Site web sur-mesure, réservations automatisées et espace d&apos;administration — tout-en-un, sans abonnement complexe.
+            </p>
+            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+              <Link href="#offre" className="font-secondary" style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--paper)', backgroundColor: 'var(--pine)', padding: '13px 28px', borderRadius: 10, textDecoration: 'none' }}>
+                Découvrir l&apos;offre →
+              </Link>
+              <Link href="#fonctionnalites" className="font-secondary" style={{ fontSize: '0.9rem', fontWeight: 500, color: 'var(--pine)', padding: '12px 20px', borderRadius: 10, textDecoration: 'none', border: '1.5px solid var(--pine)' }}>
+                Voir les fonctionnalités
+              </Link>
+            </div>
+          </div>
+
+          {/* VSL Remotion */}
+          <div style={{
+            borderRadius: 20,
+            overflow: 'hidden',
+            boxShadow: '0 24px 80px rgba(22,32,27,0.18)',
+            border: '1px solid var(--border)',
+          }}>
+            <ResaPlayerWrapper />
           </div>
         </div>
       </section>

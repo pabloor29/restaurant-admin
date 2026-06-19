@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RESA — Motion Demo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700;800&family=Hanken+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --pine:#13503B;--pine-dark:#0C3528;--pine-light:#E7F0EB;
+  --amber:#C77E3A;--amber-light:#F3E5D3;
+  --ink:#16201B;--slate:#5E665E;--muted:#9A9587;
+  --border:#E5DED0;--border-soft:#F0EADD;
+  --paper:#F5F1E9;--surface-alt:#FCFAF5;--surface:#FFFFFF;
+  --ok-t:#1E7A52;--ok-b:#E4F1EA;
+  --warn-t:#B97D2B;--warn-b:#F6EBD6;
+  --fp:'Schibsted Grotesk',sans-serif;
+  --fs:'Hanken Grotesk',sans-serif;
+}
+html,body{width:100%;height:100%;overflow:hidden;background:#060d09}
+
+/* ── STAGE ── */
+.stage{
+  width:100vw;height:100vh;
+  display:flex;align-items:center;justify-content:center;
+  position:relative;overflow:hidden;
+}
+.bg{position:absolute;inset:0;background:radial-gradient(ellipse 90% 80% at 50% 45%,#0d2218 0%,#060d09 65%)}
+.bg-dots{
+  position:absolute;inset:0;
+  background-image:radial-gradient(circle,rgba(19,80,59,.13) 1px,transparent 1px);
+  background-size:30px 30px;
+}
+.bg-glow{
+  position:absolute;width:70vw;height:50vw;top:30%;left:50%;
+  transform:translate(-50%,-50%);
+  background:radial-gradient(ellipse,rgba(19,80,59,.22) 0%,transparent 68%);
+  filter:blur(50px);pointer-events:none;
+  animation:glowPulse 4s ease-in-out infinite;
+}
+@keyframes glowPulse{0%,100%{opacity:.7}50%{opacity:1}}
+
+/* ── APP WINDOW ── */
+.app{
+  position:relative;z-index:10;
+  width:86vw;max-width:1080px;
+  height:78vh;max-height:660px;
+  background:var(--surface);
+  border-radius:12px;
+  border:1px solid rgba(229,222,208,.25);
+  box-shadow:0 0 0 1px rgba(19,80,59,.08),0 24px 80px rgba(0,0,0,.55),0 0 120px rgba(19,80,59,.12);
+  display:flex;overflow:hidden;
+  opacity:0;transform:scale(.95) translateY(16px);
+  transition:opacity .8s ease,transform .8s cubic-bezier(.16,1,.3,1);
+}
+.app.ready{opacity:1;transform:scale(1) translateY(0)}
+/* macOS chrome */
+.app::before{
+  content:'';position:absolute;top:13px;left:14px;
+  width:11px;height:11px;border-radius:50%;background:#FF5F56;
+  box-shadow:18px 0 0 #FFBD2E,36px 0 0 #27C93F;z-index:100;
+}
+/* top bar */
+.topbar{
+  position:absolute;top:0;left:0;right:0;height:36px;
+  background:var(--surface-alt);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:center;z-index:20;
+}
+.topbar-url{
+  font-family:var(--fs);font-size:10.5px;color:var(--muted);
+  background:var(--surface);padding:3px 14px;border-radius:5px;border:1px solid var(--border);
+}
+
+/* ── SIDEBAR ── */
+.sidebar{
+  width:186px;min-width:186px;
+  background:var(--surface);border-right:1px solid var(--border-soft);
+  padding-top:36px;display:flex;flex-direction:column;
+}
+.sb-logo{
+  display:flex;align-items:center;gap:8px;
+  padding:14px 14px 12px;border-bottom:1px solid var(--border-soft);
+}
+.sb-logo-icon{
+  width:26px;height:26px;background:var(--pine);border-radius:7px;
+  display:flex;align-items:center;justify-content:center;
+  color:var(--paper);font-family:var(--fp);font-weight:800;font-size:12px;
+}
+.sb-logo-name{font-family:var(--fp);font-weight:800;font-size:13px;color:var(--ink);letter-spacing:-.02em}
+.sb-nav{padding:8px 6px;flex:1}
+.ni{
+  display:flex;align-items:center;gap:7px;
+  padding:7px 9px;border-radius:7px;
+  font-family:var(--fs);font-size:12px;font-weight:500;color:var(--slate);
+  margin-bottom:1px;cursor:default;transition:all .15s;
+}
+.ni svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+.ni.act{background:var(--pine-light);color:var(--pine);font-weight:600}
+.sb-bottom{
+  padding:10px 8px;border-top:1px solid var(--border-soft);
+  display:flex;align-items:center;gap:8px;
+}
+.sb-avatar{
+  width:26px;height:26px;border-radius:50%;background:var(--pine);
+  display:flex;align-items:center;justify-content:center;
+  color:var(--paper);font-family:var(--fp);font-size:10px;font-weight:700;flex-shrink:0;
+}
+.sb-user-name{font-family:var(--fs);font-size:11px;font-weight:600;color:var(--ink)}
+.sb-user-role{font-family:var(--fs);font-size:9.5px;color:var(--muted)}
+
+/* ── MAIN ── */
+.main{
+  flex:1;position:relative;overflow:hidden;
+  padding-top:36px;background:var(--surface-alt);
+}
+.view{
+  position:absolute;inset:0;padding:18px 20px;
+  opacity:0;transform:scale(.98) translateY(5px);
+  transition:opacity .45s cubic-bezier(.16,1,.3,1),transform .45s cubic-bezier(.16,1,.3,1);
+  pointer-events:none;overflow:hidden;
+}
+.view.on{opacity:1;transform:scale(1) translateY(0)}
+
+/* ── VIEW HEADER ── */
+.vh{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px}
+.vh-title{font-family:var(--fp);font-size:15px;font-weight:800;color:var(--ink);letter-spacing:-.02em}
+.vh-sub{font-family:var(--fs);font-size:10px;color:var(--muted);margin-top:2px}
+.add-btn{
+  display:flex;align-items:center;gap:5px;
+  background:var(--pine);color:var(--paper);
+  padding:6px 13px;border-radius:7px;border:none;
+  font-family:var(--fs);font-size:11.5px;font-weight:600;cursor:pointer;
+  transition:box-shadow .2s;
+}
+.add-btn.hl{box-shadow:0 0 0 3px rgba(19,80,59,.25)}
+
+/* ── STATS ── */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px}
+.sc{
+  background:var(--surface);border:1px solid var(--border);border-radius:9px;
+  padding:11px 13px;
+  opacity:0;transform:translateY(8px);
+  transition:opacity .3s ease,transform .3s ease;
+}
+.sc.on{opacity:1;transform:translateY(0)}
+.sc-num{font-family:var(--fp);font-size:19px;font-weight:800;letter-spacing:-.03em;line-height:1;margin-bottom:3px;color:var(--pine)}
+.sc-num.am{color:var(--amber)}
+.sc-label{font-family:var(--fs);font-size:9px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.06em}
+.sc-trend{font-family:var(--fs);font-size:9.5px;color:var(--ok-t);font-weight:600;margin-top:3px}
+
+/* ── TABLE ── */
+.tcard{background:var(--surface);border:1px solid var(--border);border-radius:9px;overflow:hidden}
+.thead{
+  display:grid;grid-template-columns:64px 1fr 68px 88px;
+  padding:7px 13px;border-bottom:1px solid var(--border-soft);background:var(--surface-alt);
+}
+.th{font-family:var(--fs);font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
+.tr{
+  display:grid;grid-template-columns:64px 1fr 68px 88px;
+  padding:8px 13px;border-bottom:1px solid var(--border-soft);align-items:center;
+  opacity:0;transform:translateY(5px);transition:opacity .25s ease,transform .25s ease;
+}
+.tr:last-child{border-bottom:none}
+.tr.on{opacity:1;transform:translateY(0)}
+.tr.new-row{background:rgba(30,122,82,.04)}
+.tc{font-family:var(--fs);font-size:11.5px;color:var(--ink)}
+.tc.t{font-family:var(--fp);font-size:12px;font-weight:700;color:var(--pine)}
+.tc.cv{color:var(--slate);font-size:11px}
+.badge{
+  display:inline-flex;align-items:center;gap:3px;
+  padding:2px 7px;border-radius:99px;
+  font-family:var(--fs);font-size:9px;font-weight:700;
+}
+.b-ok{background:var(--ok-b);color:var(--ok-t)}
+.b-warn{background:var(--warn-b);color:var(--warn-t)}
+
+/* ── MODAL ── */
+.modal-bg{
+  position:absolute;inset:0;
+  background:rgba(22,32,27,.45);backdrop-filter:blur(5px);
+  display:flex;align-items:center;justify-content:center;
+  z-index:80;opacity:0;pointer-events:none;transition:opacity .3s ease;
+}
+.modal-bg.on{opacity:1}
+.modal{
+  background:var(--surface);border:1px solid var(--border);border-radius:13px;
+  padding:22px;width:320px;
+  box-shadow:0 24px 60px rgba(0,0,0,.18);
+  transform:scale(.91) translateY(10px);
+  transition:transform .38s cubic-bezier(.34,1.56,.64,1);
+}
+.modal-bg.on .modal{transform:scale(1) translateY(0)}
+.modal-title{font-family:var(--fp);font-size:14px;font-weight:800;color:var(--ink);letter-spacing:-.02em;margin-bottom:14px}
+.fg{margin-bottom:10px}
+.fl{display:block;font-family:var(--fs);font-size:10px;font-weight:600;color:var(--slate);margin-bottom:3px}
+.fi{
+  width:100%;padding:7px 10px;border:1.5px solid var(--border);border-radius:7px;
+  font-family:var(--fs);font-size:11.5px;color:var(--ink);background:var(--surface);
+  outline:none;transition:border-color .15s,box-shadow .15s;
+}
+.fi.fc{border-color:var(--pine);box-shadow:0 0 0 3px rgba(19,80,59,.08)}
+.frow{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+.mactions{display:flex;gap:7px;justify-content:flex-end;margin-top:14px}
+.btn-c{padding:7px 12px;border-radius:7px;border:1px solid var(--border);background:var(--surface);font-family:var(--fs);font-size:11px;font-weight:500;color:var(--slate);cursor:pointer}
+.btn-ok{padding:7px 14px;border-radius:7px;border:none;background:var(--pine);color:var(--paper);font-family:var(--fs);font-size:11px;font-weight:600;cursor:pointer;transition:box-shadow .2s}
+.btn-ok.hl{box-shadow:0 0 0 3px rgba(19,80,59,.25)}
+
+/* ── CALENDAR ── */
+.cal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.cal-tabs{display:flex;gap:5px}
+.cal-tab{padding:5px 10px;border-radius:6px;font-family:var(--fs);font-size:10.5px;font-weight:500;color:var(--slate);border:1px solid var(--border)}
+.cal-tab.act{background:var(--pine-light);color:var(--pine);font-weight:600;border-color:transparent}
+.wgrid{
+  display:grid;
+  grid-template-columns:44px repeat(7,1fr);
+  background:var(--surface);border:1px solid var(--border);border-radius:9px;overflow:hidden;
+  height:calc(100% - 72px);
+}
+.wdh{padding:7px 4px;text-align:center;border-bottom:1px solid var(--border-soft);border-right:1px solid var(--border-soft)}
+.wdn{font-family:var(--fs);font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;font-weight:600}
+.wdd{font-family:var(--fp);font-size:14px;font-weight:700;color:var(--ink);line-height:1.2}
+.wdd.tod{color:var(--pine)}
+.wdd-today-dot{width:4px;height:4px;border-radius:50%;background:var(--pine);margin:2px auto 0}
+.tcol{border-bottom:1px solid var(--border-soft);display:flex;align-items:center;justify-content:flex-end;padding-right:6px}
+.tlabel{font-family:var(--fs);font-size:8.5px;color:var(--muted);font-weight:500}
+.dcol{position:relative;border-right:1px solid var(--border-soft)}
+.dslot{height:34px;border-bottom:1px solid rgba(229,222,208,.35)}
+.rb{
+  position:absolute;left:2px;right:2px;border-radius:4px;
+  padding:2px 5px;font-family:var(--fs);font-size:8.5px;font-weight:600;overflow:hidden;
+  opacity:0;transform:scaleY(.4);transform-origin:top;
+  transition:opacity .3s ease,transform .35s cubic-bezier(.34,1.56,.64,1);
+}
+.rb.on{opacity:1;transform:scaleY(1)}
+.rb.pine{background:var(--pine-light);color:var(--pine);border-left:2px solid var(--pine)}
+.rb.amb{background:var(--amber-light);color:var(--amber);border-left:2px solid var(--amber)}
+
+/* ── ANALYTICS ── */
+.an-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px}
+.metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
+.mc{background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:13px 15px}
+.mc-label{font-family:var(--fs);font-size:9px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px}
+.mc-val{font-family:var(--fp);font-size:24px;font-weight:800;letter-spacing:-.03em;line-height:1;color:var(--ink)}
+.mc-val.pine{color:var(--pine)}.mc-val.am{color:var(--amber)}
+.mc-sub{font-family:var(--fs);font-size:9.5px;color:var(--ok-t);font-weight:600;margin-top:4px}
+.chart-card{background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:13px 16px}
+.chart-title{font-family:var(--fs);font-size:10.5px;font-weight:600;color:var(--slate);margin-bottom:12px}
+.chart-area{display:flex;align-items:flex-end;gap:6px;height:90px}
+.bg-grp{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;height:100%}
+.bar{flex:1;display:flex;align-items:flex-end;width:100%}
+.bf{width:100%;border-radius:3px 3px 0 0;height:0%;transition:height .9s cubic-bezier(.34,1.2,.64,1);background:var(--pine)}
+.bf.am{background:var(--amber)}
+.blabel{font-family:var(--fs);font-size:8.5px;color:var(--muted);font-weight:500}
+.blabel.hi{color:var(--amber);font-weight:700}
+
+/* ── TOAST ── */
+.toast{
+  position:absolute;top:46px;right:-280px;
+  background:var(--surface);border:1px solid var(--border);border-radius:9px;
+  padding:9px 13px;display:flex;align-items:center;gap:8px;
+  box-shadow:0 4px 20px rgba(0,0,0,.1);z-index:200;
+  transition:right .45s cubic-bezier(.34,1.56,.64,1);pointer-events:none;
+}
+.toast.on{right:14px}
+.t-icon{width:22px;height:22px;background:var(--ok-b);border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.t-title{font-family:var(--fs);font-size:11.5px;font-weight:700;color:var(--ink)}
+.t-sub{font-family:var(--fs);font-size:9.5px;color:var(--muted)}
+
+/* ── CURSOR ── */
+.cursor{
+  position:fixed;z-index:999;pointer-events:none;
+  width:0;height:0;
+  border-left:8px solid transparent;
+  border-right:8px solid transparent;
+  border-top:none;
+  /* arrow pointer shape */
+  display:none;
+}
+/* use a clean circle cursor instead */
+.cursor{
+  width:14px;height:14px;border-radius:50%;
+  background:rgba(255,255,255,.95);
+  border:1.5px solid rgba(0,0,0,.2);
+  box-shadow:0 2px 8px rgba(0,0,0,.25);
+  position:fixed;z-index:999;pointer-events:none;display:none;
+  transition:
+    left .55s cubic-bezier(.25,.46,.45,.94),
+    top .55s cubic-bezier(.25,.46,.45,.94),
+    transform .15s ease,
+    opacity .3s ease;
+}
+.cursor.show{display:block}
+.cursor.click{transform:scale(.65);background:rgba(255,255,255,.6)}
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="bg"></div>
+  <div class="bg-dots"></div>
+  <div class="bg-glow"></div>
+
+  <div class="app" id="app">
+    <div class="topbar"><div class="topbar-url">app.resa.fr</div></div>
+
+    <!-- Sidebar -->
+    <div class="sidebar">
+      <div class="sb-logo">
+        <div class="sb-logo-icon">R</div>
+        <span class="sb-logo-name">RESA</span>
+      </div>
+      <nav class="sb-nav">
+        <div class="ni" id="ni-db">
+          <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>
+          Tableau de bord
+        </div>
+        <div class="ni" id="ni-res">
+          <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          Réservations
+        </div>
+        <div class="ni" id="ni-menu">
+          <svg viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+          Menu
+        </div>
+        <div class="ni" id="ni-team">
+          <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          Équipe
+        </div>
+        <div class="ni" id="ni-an">
+          <svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/><line x1="2" y1="20" x2="22" y2="20"/></svg>
+          Analytiques
+        </div>
+      </nav>
+      <div class="sb-bottom">
+        <div class="sb-avatar">PO</div>
+        <div><div class="sb-user-name">Pablo Ortega</div><div class="sb-user-role">Gérant</div></div>
+      </div>
+    </div>
+
+    <!-- Main -->
+    <div class="main">
+
+      <!-- VIEW 1: Dashboard -->
+      <div class="view" id="v1">
+        <div class="vh">
+          <div><div class="vh-title">Tableau de bord</div><div class="vh-sub">Jeudi 19 juin 2025</div></div>
+          <button class="add-btn" id="addBtn">
+            <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Réservation
+          </button>
+        </div>
+        <div class="stats">
+          <div class="sc" id="sc0"><div class="sc-num">42</div><div class="sc-label">Réservations</div><div class="sc-trend">↑ +8 vs hier</div></div>
+          <div class="sc" id="sc1"><div class="sc-num">156</div><div class="sc-label">Couverts</div><div class="sc-trend">↑ +14 vs hier</div></div>
+          <div class="sc" id="sc2"><div class="sc-num am">89%</div><div class="sc-label">Occupation</div><div class="sc-trend">↑ +5pts</div></div>
+          <div class="sc" id="sc3"><div class="sc-num">2 840€</div><div class="sc-label">CA du jour</div><div class="sc-trend">↑ estimé</div></div>
+        </div>
+        <div class="tcard">
+          <div class="thead"><div class="th">Heure</div><div class="th">Client</div><div class="th">Couverts</div><div class="th">Statut</div></div>
+          <div class="tr" id="tr0"><div class="tc t">19h00</div><div class="tc">Famille Martin</div><div class="tc cv">6 pers.</div><div class="tc"><span class="badge b-ok">● Confirmé</span></div></div>
+          <div class="tr" id="tr1"><div class="tc t">19h30</div><div class="tc">M. Leconte</div><div class="tc cv">2 pers.</div><div class="tc"><span class="badge b-warn">● En attente</span></div></div>
+          <div class="tr" id="tr2"><div class="tc t">20h00</div><div class="tc">Sophie & Paul</div><div class="tc cv">4 pers.</div><div class="tc"><span class="badge b-ok">● Confirmé</span></div></div>
+          <div class="tr" id="tr3"><div class="tc t">20h30</div><div class="tc">Table Dupont</div><div class="tc cv">3 pers.</div><div class="tc"><span class="badge b-ok">● Confirmé</span></div></div>
+          <div class="tr" id="tr4"><div class="tc t">21h00</div><div class="tc">Rés. en ligne</div><div class="tc cv">5 pers.</div><div class="tc"><span class="badge b-warn">● En attente</span></div></div>
+          <div class="tr new-row" id="tr-new" style="display:none"><div class="tc t">21h30</div><div class="tc">Sophie Martin</div><div class="tc cv">4 pers.</div><div class="tc"><span class="badge b-ok">● Confirmé</span></div></div>
+        </div>
+      </div>
+
+      <!-- VIEW 3: Calendar -->
+      <div class="view" id="v3">
+        <div class="cal-header">
+          <div><div class="vh-title">Calendrier</div><div class="vh-sub">Semaine du 16 au 22 juin 2025</div></div>
+          <div class="cal-tabs"><div class="cal-tab act">Semaine</div><div class="cal-tab">Mois</div></div>
+        </div>
+        <div class="wgrid">
+          <!-- Corner -->
+          <div style="border-bottom:1px solid var(--border-soft);border-right:1px solid var(--border-soft)"></div>
+          <!-- Day headers -->
+          <div class="wdh"><div class="wdn">Lun</div><div class="wdd">16</div></div>
+          <div class="wdh"><div class="wdn">Mar</div><div class="wdd">17</div></div>
+          <div class="wdh"><div class="wdn">Mer</div><div class="wdd">18</div></div>
+          <div class="wdh"><div class="wdn">Jeu</div><div class="wdd tod">19<div class="wdd-today-dot"></div></div></div>
+          <div class="wdh"><div class="wdn">Ven</div><div class="wdd">20</div></div>
+          <div class="wdh"><div class="wdn">Sam</div><div class="wdd">21</div></div>
+          <div class="wdh"><div class="wdn">Dim</div><div class="wdd">22</div></div>
+          <!-- Row 19h -->
+          <div class="tcol"><span class="tlabel">19h</span></div>
+          <div class="dcol"><div class="dslot"></div><div class="rb pine" id="rb0" style="top:2px;height:30px">Martin 6p</div></div>
+          <div class="dcol"><div class="dslot"></div></div>
+          <div class="dcol"><div class="dslot"></div><div class="rb pine" id="rb1" style="top:2px;height:30px">Renaud 4p</div></div>
+          <div class="dcol"><div class="dslot"></div><div class="rb pine" id="rb2" style="top:2px;height:30px">Martin 6p</div></div>
+          <div class="dcol"><div class="dslot"></div></div>
+          <div class="dcol"><div class="dslot"></div><div class="rb pine" id="rb3" style="top:2px;height:64px">Banquet 12p</div></div>
+          <div class="dcol"><div class="dslot"></div></div>
+          <!-- Row 20h -->
+          <div class="tcol"><span class="tlabel">20h</span></div>
+          <div class="dcol"><div class="dslot"></div><div class="rb amb" id="rb4" style="top:2px;height:30px">Leconte 2p</div></div>
+          <div class="dcol"><div class="dslot"></div><div class="rb pine" id="rb5" style="top:2px;height:30px">Sophie P 4p</div></div>
+          <div class="dcol"><div class="dslot"></div><div class="rb pine" id="rb6" style="top:2px;height:30px">Dupont 3p</div></div>
+          <div class="dcol"><div class="dslot"></div><div class="rb amb" id="rb7" style="top:2px;height:64px">Rés. web 5p</div></div>
+          <div class="dcol"><div class="dslot"></div><div class="rb pine" id="rb8" style="top:2px;height:30px">Moreau 4p</div></div>
+          <div class="dcol"><div class="dslot"></div></div>
+          <div class="dcol"><div class="dslot"></div></div>
+          <!-- Row 21h -->
+          <div class="tcol"><span class="tlabel">21h</span></div>
+          <div class="dcol"><div class="dslot"></div></div>
+          <div class="dcol"><div class="dslot"></div><div class="rb amb" id="rb9" style="top:2px;height:30px">Bernard 3p</div></div>
+          <div class="dcol"><div class="dslot"></div><div class="rb pine" id="rb10" style="top:2px;height:30px">Petit 2p</div></div>
+          <div class="dcol"><div class="dslot"></div><div class="rb pine" id="rb11" style="top:2px;height:30px">Martin 4p</div></div>
+          <div class="dcol"><div class="dslot"></div><div class="rb pine" id="rb12" style="top:2px;height:30px">Groupe 8p</div></div>
+          <div class="dcol"><div class="dslot"></div></div>
+          <div class="dcol"><div class="dslot"></div></div>
+        </div>
+      </div>
+
+      <!-- VIEW 4: Analytics -->
+      <div class="view" id="v4">
+        <div class="an-header">
+          <div><div class="vh-title">Analytiques</div><div class="vh-sub">Juin 2025</div></div>
+          <div class="cal-tabs"><div class="cal-tab act">Ce mois</div><div class="cal-tab">Trimestre</div></div>
+        </div>
+        <div class="metrics">
+          <div class="mc"><div class="mc-label">Chiffre d'affaires</div><div class="mc-val pine" id="rev">0 €</div><div class="mc-sub">↑ +12% vs juin 2024</div></div>
+          <div class="mc"><div class="mc-label">Réservations</div><div class="mc-val" id="rescount">0</div><div class="mc-sub">↑ +18% vs juin 2024</div></div>
+          <div class="mc"><div class="mc-label">Taux d'occupation</div><div class="mc-val am" id="occ">0%</div><div class="mc-sub">↑ +5pts vs juin 2024</div></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">Chiffre d'affaires — Semaine du 16 juin</div>
+          <div class="chart-area">
+            <div class="bg-grp"><div class="bar"><div class="bf" id="b0" data-h="62"></div></div><div class="blabel">Lun</div></div>
+            <div class="bg-grp"><div class="bar"><div class="bf" id="b1" data-h="74"></div></div><div class="blabel">Mar</div></div>
+            <div class="bg-grp"><div class="bar"><div class="bf" id="b2" data-h="55"></div></div><div class="blabel">Mer</div></div>
+            <div class="bg-grp"><div class="bar"><div class="bf am" id="b3" data-h="88"></div></div><div class="blabel hi">Jeu</div></div>
+            <div class="bg-grp"><div class="bar"><div class="bf" id="b4" data-h="93"></div></div><div class="blabel">Ven</div></div>
+            <div class="bg-grp"><div class="bar"><div class="bf" id="b5" data-h="100"></div></div><div class="blabel" style="font-weight:600">Sam</div></div>
+            <div class="bg-grp"><div class="bar"><div class="bf am" id="b6" data-h="76"></div></div><div class="blabel">Dim</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal -->
+      <div class="modal-bg" id="modal">
+        <div class="modal">
+          <div class="modal-title">Nouvelle réservation</div>
+          <div class="fg"><label class="fl">Nom du client</label><input class="fi" id="fn" type="text" placeholder="Nom..." readonly></div>
+          <div class="frow">
+            <div><label class="fl">Couverts</label><input class="fi" id="fc" type="text" placeholder="Nb." readonly></div>
+            <div><label class="fl">Heure</label><input class="fi" id="fh" type="text" placeholder="hh:mm" readonly></div>
+          </div>
+          <div class="fg"><label class="fl">Notes</label><input class="fi" id="fo" type="text" placeholder="Informations..." readonly></div>
+          <div class="mactions">
+            <button class="btn-c">Annuler</button>
+            <button class="btn-ok" id="confirmBtn">Confirmer</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Toast -->
+      <div class="toast" id="toast">
+        <div class="t-icon">
+          <svg width="11" height="11" fill="none" stroke="var(--ok-t)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+        </div>
+        <div><div class="t-title">Réservation confirmée</div><div class="t-sub">Sophie Martin · 21h30 · 4 pers.</div></div>
+      </div>
+
+    </div><!-- /main -->
+  </div><!-- /app -->
+
+  <div class="cursor" id="cur"></div>
+</div>
+
+<script>
+const app = document.getElementById('app');
+const cur = document.getElementById('cur');
+const [v1,v3,v4] = ['v1','v3','v4'].map(id => document.getElementById(id));
+const modal = document.getElementById('modal');
+const toast = document.getElementById('toast');
+const addBtn = document.getElementById('addBtn');
+const confirmBtn = document.getElementById('confirmBtn');
+const allNavs = ['ni-db','ni-res','ni-menu','ni-team','ni-an'].map(id => document.getElementById(id));
+const scs = [0,1,2,3].map(i => document.getElementById('sc'+i));
+const trs = [0,1,2,3,4].map(i => document.getElementById('tr'+i));
+const trNew = document.getElementById('tr-new');
+const [fn,fc,fh,fo] = ['fn','fc','fh','fo'].map(id => document.getElementById(id));
+const rbs = document.querySelectorAll('.rb');
+const bars = [0,1,2,3,4,5,6].map(i => document.getElementById('b'+i));
+
+const W = () => app.getBoundingClientRect();
+
+function p(ms){ return new Promise(r => setTimeout(r, ms)) }
+
+// Move cursor to % of appWindow
+function mc(xp, yp){
+  const r = W();
+  cur.style.left = (r.left + r.width * xp/100 - 7) + 'px';
+  cur.style.top  = (r.top  + r.height* yp/100 - 7) + 'px';
+}
+
+async function click(el){
+  el && el.classList.add('hl');
+  cur.classList.add('click');
+  await p(280);
+  cur.classList.remove('click');
+  el && el.classList.remove('hl');
+}
+
+function setNav(idx){
+  allNavs.forEach((n,i) => n.classList.toggle('act', i===idx));
+}
+
+function focusField(f){
+  [fn,fc,fh,fo].forEach(x => x.classList.remove('fc'));
+  f.classList.add('fc');
+}
+
+async function type(f, text, speed=65){
+  focusField(f); f.value='';
+  for(const ch of text){ f.value += ch; await p(speed) }
+}
+
+function showView(v){
+  [v1,v3,v4].forEach(x => x.classList.remove('on'));
+  v && v.classList.add('on');
+}
+
+function animateCounters(){
+  const counter = (el, to, fmt) => {
+    const start = Date.now();
+    const tick = () => {
+      const t = Math.min((Date.now()-start)/1600,1);
+      const e = 1-Math.pow(1-t,3);
+      const v = Math.round(to*e);
+      el.textContent = fmt(v);
+      if(t<1) requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  };
+  counter(document.getElementById('rev'), 48240, v => v.toLocaleString('fr-FR')+' €');
+  counter(document.getElementById('rescount'), 1247, v => v.toLocaleString('fr-FR'));
+  counter(document.getElementById('occ'), 87, v => v+'%');
+}
+
+function animateBars(){ bars.forEach((b,i) => setTimeout(() => b.style.height = b.dataset.h+'%', i*90)) }
+function resetBars(){ bars.forEach(b => b.style.height='0%') }
+function showBlocks(){ rbs.forEach((b,i) => setTimeout(() => b.classList.add('on'), i*110)) }
+function hideBlocks(){ rbs.forEach(b => b.classList.remove('on')) }
+
+async function run(){
+  cur.classList.add('show');
+
+  // ──── SCENE 1: Dashboard ────
+  setNav(0); showView(v1);
+  mc(65, 50);
+  await p(350);
+  scs.forEach((s,i) => setTimeout(() => s.classList.add('on'), i*90));
+  await p(600);
+  trs.forEach((r,i) => setTimeout(() => r.classList.add('on'), i*100));
+  await p(1600);
+
+  // Cursor to add button (~83% x, 10% y inside app)
+  mc(83, 10);
+  await p(650);
+  await click(addBtn);
+  await p(300);
+
+  // ──── SCENE 2: Modal ────
+  modal.classList.add('on');
+  mc(60, 50);
+  await p(550);
+
+  // Name
+  mc(55, 38); await p(300);
+  await type(fn, 'Sophie Martin', 68);
+  await p(180);
+
+  // Covers
+  mc(38, 52); await p(280);
+  await type(fc, '4', 120);
+  await p(120);
+
+  // Hour
+  mc(58, 52); await p(280);
+  await type(fh, '21h30', 90);
+  await p(200);
+
+  // Notes
+  mc(55, 63); await p(280);
+  await type(fo, 'Allergie poisson', 58);
+  await p(350);
+
+  // Confirm
+  mc(62, 77); await p(380);
+  await click(confirmBtn);
+  await p(200);
+
+  modal.classList.remove('on');
+  [fn,fc,fh,fo].forEach(f => { f.value=''; f.classList.remove('fc'); });
+
+  await p(280);
+  toast.classList.add('on');
+  trNew.style.display='grid';
+  await p(50);
+  trNew.classList.add('on');
+
+  await p(1400);
+  toast.classList.remove('on');
+  await p(700);
+
+  // ──── SCENE 3: Calendar ────
+  setNav(1);
+  v1.classList.remove('on');
+  await p(80);
+  hideBlocks();
+  v3.classList.add('on');
+  mc(50, 50);
+  await p(350);
+  showBlocks();
+  await p(2800);
+
+  // ──── SCENE 4: Analytics ────
+  setNav(4);
+  v3.classList.remove('on');
+  await p(80);
+  v4.classList.add('on');
+  mc(50, 60);
+  await p(350);
+  animateCounters();
+  await p(400);
+  animateBars();
+  await p(3000);
+
+  // ──── RESET & LOOP ────
+  v4.style.transition='opacity .5s ease';
+  v4.style.opacity='0';
+  cur.style.opacity='0';
+  await p(500);
+
+  // Hard reset
+  v4.classList.remove('on');
+  v4.style.opacity='';
+  v4.style.transition='';
+  cur.style.opacity='';
+
+  document.getElementById('rev').textContent='0 €';
+  document.getElementById('rescount').textContent='0';
+  document.getElementById('occ').textContent='0%';
+  resetBars();
+
+  scs.forEach(s => s.classList.remove('on'));
+  trs.forEach(r => r.classList.remove('on'));
+  trNew.style.display='none';
+  trNew.classList.remove('on');
+
+  await p(250);
+  run();
+}
+
+window.addEventListener('load', () => {
+  setTimeout(() => { app.classList.add('ready'); setTimeout(run, 900); }, 400);
+});
+</script>
+</body>
+</html>

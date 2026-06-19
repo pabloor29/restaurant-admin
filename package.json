@@ -6,12 +6,15 @@
     "dev": "next dev --turbopack",
     "build": "next build --turbopack",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "video:studio": "remotion studio src/remotion/Root.tsx",
+    "video:render": "remotion render src/remotion/Root.tsx ResaVSL public/resa-vsl.mp4"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.4",
     "@radix-ui/react-slot": "^1.1.2",
     "@radix-ui/react-tooltip": "^1.1.8",
+    "@remotion/player": "^4.0.481",
     "@supabase/ssr": "^0.10.3",
     "@supabase/supabase-js": "^2.57.4",
     "@vercel/analytics": "^2.0.1",
@@ -23,12 +26,14 @@
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "recharts": "^3.8.1",
+    "remotion": "^4.0.481",
     "resend": "^6.14.0",
     "stripe": "^22.2.1",
     "tailwind-merge": "^3.6.0"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
+    "@remotion/cli": "^4.0.481",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",

@@ -116,3 +116,18 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   opacity: 0.4;
   cursor: pointer;
 }
+
+/* ─── SIDEBAR ─── */
+.sb-link {
+  transition: background-color 0.15s;
+}
+.sb-link:hover {
+  background-color: rgba(22, 32, 27, 0.04);
+}
+.sb-footer-item {
+  transition: background-color 0.15s;
+  border-radius: 8px;
+}
+.sb-footer-item:hover {
+  background-color: rgba(22, 32, 27, 0.04);
+}
