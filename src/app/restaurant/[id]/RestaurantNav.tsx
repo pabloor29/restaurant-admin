@@ -18,7 +18,7 @@ const ALL_SECTIONS = [
 ]
 
 const STATIC_SECTIONS = [
-  { path: '/billing', label: 'Abonnement' },
+  { path: '/infos', label: 'Infos' },
 ]
 
 export default function RestaurantNav({
@@ -72,7 +72,7 @@ export default function RestaurantNav({
             </Link>
           )
         })}
-        {!isAdmin && STATIC_SECTIONS.map(({ path, label }) => {
+        {STATIC_SECTIONS.map(({ path, label }) => {
           const href = `/restaurant/${restaurantId}${path}`
           const isActive = pathname.startsWith(href)
           return (
