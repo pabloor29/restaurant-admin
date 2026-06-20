@@ -145,9 +145,57 @@ function ReservationMockup() {
   )
 }
 
+const JSON_LD = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'Organization',
+      '@id': 'https://resa-service.com/#organization',
+      name: 'RESA',
+      url: 'https://resa-service.com',
+      logo: 'https://resa-service.com/favicon.svg',
+      description:
+        "RESA crée le site web de votre restaurant, gère les réservations en ligne et centralise l'administration.",
+    },
+    {
+      '@type': 'WebSite',
+      '@id': 'https://resa-service.com/#website',
+      url: 'https://resa-service.com',
+      name: 'RESA',
+      inLanguage: 'fr-FR',
+      publisher: { '@id': 'https://resa-service.com/#organization' },
+    },
+    {
+      '@type': 'SoftwareApplication',
+      name: 'RESA',
+      applicationCategory: 'BusinessApplication',
+      operatingSystem: 'Web',
+      url: 'https://resa-service.com',
+      description:
+        "Plateforme tout-en-un pour restaurants : site web sur-mesure, réservations en ligne, gestion des horaires, menus, congés et évènements.",
+      offers: {
+        '@type': 'Offer',
+        price: '67',
+        priceCurrency: 'EUR',
+        priceSpecification: {
+          '@type': 'UnitPriceSpecification',
+          price: '67',
+          priceCurrency: 'EUR',
+          referenceQuantity: { '@type': 'QuantitativeValue', value: 1, unitCode: 'MON' },
+        },
+        url: 'https://resa-service.com/subscribe',
+      },
+    },
+  ],
+}
+
 export default function HomePage() {
   return (
     <div style={{ backgroundColor: 'var(--paper)', minHeight: '100vh' }}>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }}
+      />
       {/* NAV */}
       <nav style={{ borderBottom: '1px solid var(--border)', backgroundColor: 'var(--surface)', position: 'sticky', top: 0, zIndex: 50 }}>
         <div style={{ maxWidth: 1080, margin: '0 auto', padding: '0 24px', height: 60, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>

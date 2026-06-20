@@ -1,5 +1,19 @@
+import type { Metadata } from 'next'
 import { getStripe } from '../../../lib/stripe'
 import SubscribeActions from './SubscribeActions'
+
+export const metadata: Metadata = {
+  title: "S'abonner — Site & réservations pour restaurants",
+  description:
+    "Souscrivez à RESA : site web sur-mesure, réservations en ligne, hébergement, maintenance et SEO inclus dans un abonnement unique pour votre restaurant.",
+  alternates: { canonical: '/subscribe' },
+  openGraph: {
+    title: "S'abonner à RESA",
+    description: "Site sur-mesure, réservations en ligne, hébergement, maintenance et SEO inclus.",
+    url: '/subscribe',
+    type: 'website',
+  },
+}
 
 const FEATURES = [
   "Site web sur-mesure",

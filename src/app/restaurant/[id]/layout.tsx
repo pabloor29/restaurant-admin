@@ -1,5 +1,11 @@
+import type { Metadata } from 'next'
 import { createClient } from '../../../../lib/supabase/server'
 import RestaurantNav from './RestaurantNav'
+
+export const metadata: Metadata = {
+  title: 'Espace restaurant',
+  robots: { index: false, follow: false, nocache: true },
+}
 
 export default async function RestaurantLayout({
   children,

@@ -1,15 +1,75 @@
 import "./globals.css";
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Analytics } from "@vercel/analytics/next";
 
+const SITE_URL = "https://resa-service.com";
+
 export const metadata: Metadata = {
-  title: "RESA — Gestion des réservations",
-  description: "L'espace d'administration qui pilote les réservations du restaurant.",
-  icons: {
-    icon: [
-      { url: "/favicon.svg", type: "image/svg+xml" },
-    ],
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: "RESA — Site web & réservations en ligne pour restaurants",
+    template: "%s | RESA",
   },
+  description:
+    "RESA crée le site web de votre restaurant, gère les réservations en ligne et centralise horaires, menus, congés et évènements depuis un espace d'administration unique. Hébergement, maintenance et SEO inclus.",
+  applicationName: "RESA",
+  keywords: [
+    "site web restaurant",
+    "réservation restaurant en ligne",
+    "logiciel réservation restaurant",
+    "gestion réservations restaurant",
+    "création site restaurant",
+    "SEO restaurant",
+    "menu en ligne restaurant",
+    "RESA",
+  ],
+  authors: [{ name: "RESA" }],
+  creator: "RESA",
+  publisher: "RESA",
+  category: "Business Software",
+  alternates: {
+    canonical: "/",
+  },
+  icons: {
+    icon: [{ url: "/favicon.svg", type: "image/svg+xml" }],
+  },
+  openGraph: {
+    type: "website",
+    locale: "fr_FR",
+    url: SITE_URL,
+    siteName: "RESA",
+    title: "RESA — Site web & réservations en ligne pour restaurants",
+    description:
+      "Site sur-mesure, réservations en ligne et espace d'administration tout-en-un pour les restaurants. Hébergement, maintenance et SEO inclus.",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "RESA — Site web & réservations en ligne pour restaurants",
+    description:
+      "Site sur-mesure, réservations en ligne et espace d'administration tout-en-un pour les restaurants.",
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-snippet": -1,
+      "max-image-preview": "large",
+      "max-video-preview": -1,
+    },
+  },
+  formatDetection: {
+    telephone: false,
+    email: false,
+    address: false,
+  },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  themeColor: "#13503B",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -20,7 +80,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700;800&family=Hanken+Grotesk:wght@400;500;600;700&family=Newsreader:ital,wght@1,400;1,500&display=swap"
           rel="stylesheet"
         />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
       </head>
       <body suppressHydrationWarning>
         {children}
