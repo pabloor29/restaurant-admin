@@ -7,8 +7,11 @@
     "build": "next build --turbopack",
     "start": "next start",
     "lint": "eslint",
-    "video:studio": "remotion studio src/remotion/Root.tsx",
-    "video:render": "remotion render src/remotion/Root.tsx ResaVSL public/resa-vsl.mp4"
+    "video:studio": "remotion studio src/remotion/index.ts",
+    "video:render": "remotion render src/remotion/index.ts ResaVSL public/resa-vsl.mp4",
+    "video:render:square": "remotion render src/remotion/index.ts ResaVSL-Square public/resa-vsl-square.mp4",
+    "video:render:vertical": "remotion render src/remotion/index.ts ResaVSL-Vertical public/resa-vsl-vertical.mp4",
+    "video:render:all": "npm run video:render && npm run video:render:square && npm run video:render:vertical"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.4",

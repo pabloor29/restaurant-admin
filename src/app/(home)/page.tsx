@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import ContactForm from './ContactForm'
-import { ResaPlayerWrapper } from '../../components/ResaPlayerWrapper'
+import { HeroVideo } from '../../components/HeroVideo'
 
 const FEATURES = [
   {
@@ -197,14 +197,18 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* VSL Remotion */}
+          {/* VSL vertical */}
           <div style={{
             borderRadius: 20,
             overflow: 'hidden',
             boxShadow: '0 24px 80px rgba(22,32,27,0.18)',
             border: '1px solid var(--border)',
+            aspectRatio: '9 / 16',
+            maxWidth: 380,
+            margin: '0 auto',
+            backgroundColor: '#0C3528',
           }}>
-            <ResaPlayerWrapper />
+            <HeroVideo />
           </div>
         </div>
       </section>
