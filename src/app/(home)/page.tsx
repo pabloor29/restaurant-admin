@@ -54,6 +54,13 @@ const FEATURES = [
   },
 ]
 
+const PARTNERS: { name: string; src: string; alt: string; url: string; desc: string }[] = [
+  { name: 'Carbo', src: '/partenaires/CARBO-LOGO-4.webp', alt: 'Carbo', url: 'https://www.restaurant-carbo.fr/', desc: 'Restaurant partenaire RESA.' },
+  { name: 'Floridablanca', src: '/partenaires/logo-blue.webp', alt: 'Floridablanca', url: 'https://www.floridablanca.fr/', desc: 'Restaurant partenaire RESA.' },
+  { name: "L'Atelier de l'Écharpe", src: '/partenaires/logo-red.png', alt: "L'Atelier de l'Écharpe", url: 'https://www.latelierdelecharpe.fr/', desc: 'Restaurant partenaire RESA.' },
+  { name: 'Bocante', src: '/partenaires/logo-cut.webp', alt: 'Bocante', url: 'https://www.bocante.com/', desc: 'Restaurant partenaire RESA.' },
+]
+
 const ADMIN_FEATURES = [
   { label: 'Horaires', desc: 'Définissez vos créneaux du midi et du soir pour chaque jour.' },
   { label: 'Fermetures', desc: 'Bloquez des dates sur un calendrier visuel en un clic.' },
@@ -261,8 +268,20 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* PARTENAIRES */}
+      <section aria-label="Partenaires" style={{ backgroundColor: 'var(--surface-alt)', borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)', padding: '40px 0' }}>
+        <p className="font-secondary" style={{ textAlign: 'center', fontSize: '0.78rem', letterSpacing: '0.14em', color: 'var(--slate)', fontWeight: 600, marginBottom: 20 }}>Ces restaurants nous font confiance</p>
+        <div className="partners-marquee">
+          <div className="partners-track">
+            {[...PARTNERS, ...PARTNERS].map((p, i) => (
+              <img key={`${p.src}-${i}`} src={p.src} alt={p.alt} loading="lazy" />
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* MOCKUPS */}
-      <section style={{ maxWidth: 1080, margin: '0 auto', padding: '0 24px 64px' }}>
+      <section style={{ maxWidth: 1080, margin: '0 auto', padding: '64px 24px 64px' }}>
         <div className="lp-grid-2" style={{ gap: 20 }}>
           <div className="lp-hide-mobile"><AdminMockup /></div>
           <ReservationMockup />
@@ -304,7 +323,7 @@ export default function HomePage() {
                 <span className="font-secondary" style={{ fontSize: '1rem', color: 'rgba(245,241,233,0.6)', marginBottom: 8 }}>/&nbsp;mois</span>
               </div>
               <p className="font-accent" style={{ fontSize: '0.95rem', color: 'var(--amber-bright)', marginBottom: 24 }}>
-                Sans engagement de durée
+                Engagement 1 an
               </p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 28 }}>
                 {[
@@ -404,6 +423,33 @@ export default function HomePage() {
             </div>
           </div>
           <ReservationMockup />
+        </div>
+      </section>
+
+      {/* PARTENAIRES — DÉTAIL */}
+      <section id="partenaires" style={{ backgroundColor: 'var(--surface)', borderTop: '1px solid var(--border)', padding: '72px 24px' }}>
+        <div style={{ maxWidth: 1080, margin: '0 auto' }}>
+          <p className="font-secondary" style={{ fontSize: '0.72rem', letterSpacing: '0.15em', color: 'var(--pine)', fontWeight: 600, marginBottom: 12 }}>PARTENAIRES</p>
+          <h2 className="font-primary" style={{ fontSize: 'clamp(1.8rem,4vw,2.6rem)', fontWeight: 800, letterSpacing: '-0.03em', color: 'var(--ink)', marginBottom: 16, lineHeight: 1.1 }}>
+            Ils nous ont fait confiance.
+          </h2>
+          <p className="font-secondary" style={{ fontSize: '0.95rem', color: 'var(--slate)', lineHeight: 1.65, marginBottom: 40, maxWidth: 640 }}>
+            Découvrez les restaurants qui utilisent RESA au quotidien pour leur site et leurs réservations.
+          </p>
+          <div className="lp-grid-3" style={{ gap: 20 }}>
+            {PARTNERS.map(p => (
+              <a key={p.src} href={p.url} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', flexDirection: 'column', gap: 16, padding: 24, backgroundColor: 'var(--surface-alt)', border: '1px solid var(--border)', borderRadius: 14, textDecoration: 'none', transition: 'border-color 0.2s, transform 0.2s' }}>
+                <div style={{ height: 80, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <img src={p.src} alt={p.alt} style={{ maxHeight: 64, maxWidth: '70%', objectFit: 'contain' }} />
+                </div>
+                <div>
+                  <p className="font-primary" style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--ink)', marginBottom: 6 }}>{p.name}</p>
+                  <p className="font-secondary" style={{ fontSize: '0.85rem', color: 'var(--slate)', lineHeight: 1.5, marginBottom: 12 }}>{p.desc}</p>
+                  <span className="font-secondary" style={{ fontSize: '0.8rem', color: 'var(--pine)', fontWeight: 600 }}>Voir le site →</span>
+                </div>
+              </a>
+            ))}
+          </div>
         </div>
       </section>
 

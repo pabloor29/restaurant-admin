@@ -131,3 +131,36 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 .sb-footer-item:hover {
   background-color: rgba(22, 32, 27, 0.04);
 }
+
+/* ─── PARTNERS MARQUEE ─── */
+.partners-marquee {
+  overflow: hidden;
+  width: 100%;
+  position: relative;
+  mask-image: linear-gradient(to right, transparent, #000 8%, #000 92%, transparent);
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 8%, #000 92%, transparent);
+}
+.partners-track {
+  display: flex;
+  align-items: center;
+  gap: 96px;
+  width: max-content;
+  animation: partners-scroll 32s linear infinite;
+}
+.partners-track img {
+  height: 88px;
+  width: auto;
+  max-width: 220px;
+  object-fit: contain;
+  display: block;
+  opacity: 0.85;
+  transition: opacity 0.2s;
+}
+.partners-track img:hover { opacity: 1; }
+@keyframes partners-scroll {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .partners-track { animation: none; }
+}
