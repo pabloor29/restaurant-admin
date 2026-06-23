@@ -23,7 +23,7 @@ export function HeroVideo() {
   return (
     <video
       ref={ref}
-      src="/resa-vsl-vertical.mp4"
+      src="/motion-design/resa-vsl-vertical.mp4"
       autoPlay
       loop
       muted
