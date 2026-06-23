@@ -1,7 +1,15 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '../../../../../lib/supabase/server'
+import { createClient as createSupabaseAdmin } from '@supabase/supabase-js'
 import { getStripe } from '../../../../../lib/stripe'
 import { computeCancellation, MONTHLY_PRICE_EUR } from '../../../../../lib/cancellation'
+
+function getAdmin() {
+  return createSupabaseAdmin(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  )
+}
 
 export async function POST(req: Request) {
   try {
@@ -67,6 +75,11 @@ export async function POST(req: Request) {
         invoice_now: false,
         prorate: false,
       })
+
+      await getAdmin()
+        .from('profiles')
+        .update({ subscription_status: 'canceled' })
+        .eq('id', user.id)
 
       return NextResponse.json({
         mode: 'early_cancellation',

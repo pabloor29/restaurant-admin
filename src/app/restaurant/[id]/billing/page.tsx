@@ -31,18 +31,21 @@ export default function BillingPage() {
   const [status, setStatus] = useState<Status | null>(null)
   const [loading, setLoading] = useState(true)
   const [portalLoading, setPortalLoading] = useState(false)
+  const [syncLoading, setSyncLoading] = useState(false)
+  const [syncMessage, setSyncMessage] = useState('')
   const supabase = createClient()
 
+  async function refreshStatus() {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+    const { data } = await supabase.from('profiles').select('subscription_status').eq('id', user.id).single()
+    setStatus((data?.subscription_status as Status) ?? 'pending')
+  }
+
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (!user) return
-      supabase.from('profiles').select('subscription_status').eq('id', user.id).single()
-        .then(({ data }) => {
-          setStatus((data?.subscription_status as Status) ?? 'pending')
-          setLoading(false)
-        })
-    })
-  }, [supabase])
+    refreshStatus().finally(() => setLoading(false))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   async function handlePortal() {
     setPortalLoading(true)
@@ -50,6 +53,29 @@ export default function BillingPage() {
     const data = await res.json()
     if (data.url) window.location.href = data.url
     else setPortalLoading(false)
+  }
+
+  async function handleSync() {
+    setSyncLoading(true)
+    setSyncMessage('')
+    try {
+      const res = await fetch('/api/stripe/sync', { method: 'POST' })
+      const data = await res.json()
+      if (!res.ok) {
+        setSyncMessage(data.error ?? 'Erreur de synchronisation')
+      } else {
+        await refreshStatus()
+        setSyncMessage(
+          data.changed
+            ? `Statut mis à jour : ${data.previous ?? '—'} → ${data.status}`
+            : `Déjà à jour (${data.status})`
+        )
+      }
+    } catch (e) {
+      setSyncMessage(e instanceof Error ? e.message : 'Erreur inconnue')
+    } finally {
+      setSyncLoading(false)
+    }
   }
 
   const info = status ? STATUS_COLORS[status] : null
@@ -77,11 +103,11 @@ export default function BillingPage() {
         )}
       </div>
 
-      {status && !['free', 'pending', 'canceled'].includes(status) && (
+      {status && !['free'].includes(status) && (
         <div className="flex flex-col gap-3">
           <button
-            onClick={handlePortal}
-            disabled={portalLoading}
+            onClick={handleSync}
+            disabled={syncLoading}
             className="w-full font-secondary cursor-pointer transition-all"
             style={{
               backgroundColor: 'var(--surface)',
@@ -91,29 +117,57 @@ export default function BillingPage() {
               fontSize: '0.875rem',
               fontWeight: 500,
               color: 'var(--ink)',
-              opacity: portalLoading ? 0.5 : 1,
+              opacity: syncLoading ? 0.5 : 1,
             }}
           >
-            {portalLoading ? '...' : 'Mettre à jour mes infos de paiement →'}
+            {syncLoading ? '...' : 'Synchroniser avec Stripe'}
           </button>
 
-          {restaurantId && (
-            <Link
-              href={`/restaurant/${restaurantId}/billing/resiliation`}
-              className="w-full font-secondary text-center transition-all"
-              style={{
-                backgroundColor: 'transparent',
-                border: '1px solid var(--border)',
-                borderRadius: 10,
-                padding: '12px 20px',
-                fontSize: '0.85rem',
-                fontWeight: 500,
-                color: 'var(--slate)',
-                textDecoration: 'none',
-              }}
-            >
-              Résilier mon abonnement
-            </Link>
+          {syncMessage && (
+            <p className="font-secondary" style={{ fontSize: '0.8rem', color: 'var(--slate)', textAlign: 'center' }}>
+              {syncMessage}
+            </p>
+          )}
+
+          {!['pending', 'canceled'].includes(status) && (
+            <>
+              <button
+                onClick={handlePortal}
+                disabled={portalLoading}
+                className="w-full font-secondary cursor-pointer transition-all"
+                style={{
+                  backgroundColor: 'var(--surface)',
+                  border: '1.5px solid var(--border)',
+                  borderRadius: 10,
+                  padding: '12px 20px',
+                  fontSize: '0.875rem',
+                  fontWeight: 500,
+                  color: 'var(--ink)',
+                  opacity: portalLoading ? 0.5 : 1,
+                }}
+              >
+                {portalLoading ? '...' : 'Mettre à jour mes infos de paiement →'}
+              </button>
+
+              {restaurantId && (
+                <Link
+                  href={`/restaurant/${restaurantId}/billing/resiliation`}
+                  className="w-full font-secondary text-center transition-all"
+                  style={{
+                    backgroundColor: 'transparent',
+                    border: '1px solid var(--border)',
+                    borderRadius: 10,
+                    padding: '12px 20px',
+                    fontSize: '0.85rem',
+                    fontWeight: 500,
+                    color: 'var(--slate)',
+                    textDecoration: 'none',
+                  }}
+                >
+                  Résilier mon abonnement
+                </Link>
+              )}
+            </>
           )}
         </div>
       )}
