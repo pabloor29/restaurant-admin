@@ -88,6 +88,11 @@ export default function ReservationsPage({ params }: { params: Promise<{ id: str
   const [totalRes,    setTotalRes]    = useState(0)
   const [totalCouverts, setTotalCouverts] = useState(0)
 
+  // Popup confirmation (commentaire admin)
+  const [confirmDialog, setConfirmDialog] = useState<{ r: Reservation; action: Status } | null>(null)
+  const [adminMessage, setAdminMessage] = useState('')
+  const [submittingDialog, setSubmittingDialog] = useState(false)
+
   // Formulaire d'ajout
   const [showForm,  setShowForm]  = useState(false)
   const [form, setForm] = useState({ date: toISO(new Date()), name: '', email: '', phone: '', time_slot: '', covers: '2', notes: '' })
@@ -210,7 +215,7 @@ export default function ReservationsPage({ params }: { params: Promise<{ id: str
   useEffect(() => { loadTotals() }, [loadTotals])
 
   // ── Action sur une réservation ──
-  async function handleAction(r: Reservation, action: Status) {
+  async function performAction(r: Reservation, action: Status, message = '') {
     // Logguer dans l'historique à l'acceptation
     if (action === 'accepted') {
       await supabase.from('reservation_history').insert({
@@ -223,7 +228,7 @@ export default function ReservationsPage({ params }: { params: Promise<{ id: str
       await fetch('/api/reservations/confirm', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ reservation_id: r.id, action }),
+        body: JSON.stringify({ reservation_id: r.id, action, admin_message: message }),
       })
     }
 
@@ -236,6 +241,27 @@ export default function ReservationsPage({ params }: { params: Promise<{ id: str
     loadPending()
     loadTotals()
     loadChart()
+  }
+
+  function handleAction(r: Reservation, action: Status) {
+    const hasClientNote = !!(r.notes && r.notes.trim())
+    // Refus → toujours popup ; Accept → popup uniquement si le client a écrit un commentaire
+    if (action === 'refused' || (action === 'accepted' && hasClientNote)) {
+      setAdminMessage('')
+      setConfirmDialog({ r, action })
+      return
+    }
+    // Autres transitions (arrived, no_show, accept sans note) → direct
+    performAction(r, action)
+  }
+
+  async function submitDialog() {
+    if (!confirmDialog) return
+    setSubmittingDialog(true)
+    await performAction(confirmDialog.r, confirmDialog.action, adminMessage.trim())
+    setSubmittingDialog(false)
+    setConfirmDialog(null)
+    setAdminMessage('')
   }
 
   // ── Ajout manuel (advanced) ──
@@ -535,6 +561,88 @@ export default function ReservationsPage({ params }: { params: Promise<{ id: str
           )}
         </div>
       </div>
+
+      {/* ── POPUP CONFIRMATION ── */}
+      {confirmDialog && (
+        <div
+          onClick={() => !submittingDialog && setConfirmDialog(null)}
+          style={{
+            position: 'fixed', inset: 0, backgroundColor: 'rgba(22,32,27,0.5)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: 16, zIndex: 50,
+          }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            className="rounded-2xl"
+            style={{
+              backgroundColor: 'var(--surface)', border: '1px solid var(--border)',
+              padding: 24, maxWidth: 480, width: '100%',
+              boxShadow: '0 20px 60px rgba(22,32,27,0.25)',
+            }}
+          >
+            <p className="font-secondary" style={{ fontSize: '0.72rem', fontWeight: 600, letterSpacing: '0.12em', color: 'var(--muted)', marginBottom: 8 }}>
+              {confirmDialog.action === 'accepted' ? 'ACCEPTER LA RÉSERVATION' : 'REFUSER LA RÉSERVATION'}
+            </p>
+            <p className="font-primary" style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--ink)', marginBottom: 16 }}>
+              {confirmDialog.r.name} · {confirmDialog.r.time_slot} · {confirmDialog.r.covers} couvert{confirmDialog.r.covers > 1 ? 's' : ''}
+            </p>
+
+            {confirmDialog.r.notes && confirmDialog.r.notes.trim() && (
+              <div className="rounded-xl mb-4" style={{ backgroundColor: 'var(--surface-alt)', border: '1px solid var(--border)', padding: '12px 14px' }}>
+                <p className="font-secondary" style={{ fontSize: '0.7rem', fontWeight: 600, letterSpacing: '0.1em', color: 'var(--muted)', marginBottom: 6 }}>
+                  COMMENTAIRE DU CLIENT
+                </p>
+                <p className="font-accent" style={{ fontSize: '0.88rem', color: 'var(--ink)', whiteSpace: 'pre-wrap' }}>
+                  {confirmDialog.r.notes}
+                </p>
+              </div>
+            )}
+
+            <label className="font-secondary" style={{ fontSize: '0.72rem', fontWeight: 600, letterSpacing: '0.08em', color: 'var(--muted)', display: 'block', marginBottom: 6 }}>
+              VOTRE RÉPONSE (OPTIONNELLE)
+            </label>
+            <textarea
+              value={adminMessage}
+              onChange={e => setAdminMessage(e.target.value)}
+              placeholder={confirmDialog.action === 'accepted'
+                ? 'Ex : nous vous installerons en terrasse, à bientôt.'
+                : 'Ex : malheureusement nous sommes complets ce soir.'}
+              rows={4}
+              className="font-secondary"
+              style={{ ...inputStyle, resize: 'vertical', minHeight: 90, marginBottom: 16 }}
+            />
+
+            <div className="flex gap-2 justify-end flex-wrap">
+              <button
+                onClick={() => setConfirmDialog(null)}
+                disabled={submittingDialog}
+                className="font-secondary cursor-pointer"
+                style={{ ...btn(), padding: '8px 18px', opacity: submittingDialog ? 0.5 : 1 }}
+              >
+                Annuler
+              </button>
+              <button
+                onClick={submitDialog}
+                disabled={submittingDialog}
+                className="font-secondary cursor-pointer"
+                style={{
+                  backgroundColor: confirmDialog.action === 'accepted' ? 'var(--status-ok-text)' : 'var(--status-err-text)',
+                  color: 'var(--paper)', border: 'none', borderRadius: 8,
+                  padding: '8px 18px', fontSize: '0.85rem', fontWeight: 600,
+                  opacity: submittingDialog ? 0.6 : 1,
+                }}
+              >
+                {submittingDialog
+                  ? '…'
+                  : adminMessage.trim()
+                    ? 'Envoyer'
+                    : 'Envoyer sans commentaire'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

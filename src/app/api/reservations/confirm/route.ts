@@ -22,7 +22,8 @@ export async function POST(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
 
-  const { reservation_id, action = 'accepted' } = await request.json()
+  const { reservation_id, action = 'accepted', admin_message = '' } = await request.json()
+  const adminMessage = typeof admin_message === 'string' ? admin_message.trim() : ''
   const admin = getAdminClient()
 
   const { data: reservation } = await admin
@@ -66,6 +67,16 @@ export async function POST(request: NextRequest) {
       </table>
     </div>`
 
+  const escapeHtml = (s: string) =>
+    s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+     .replace(/"/g, '&quot;').replace(/'/g, '&#39;')
+
+  const adminMessageBlock = adminMessage ? `
+    <div style="background: #FFFFFF; border: 1px solid #E5DED0; border-radius: 12px; padding: 24px; margin-bottom: 24px;">
+      <p style="margin: 0 0 12px; font-size: 0.72rem; font-weight: 600; letter-spacing: 0.1em; color: #9A9587;">MESSAGE DU RESTAURANT</p>
+      <p style="margin: 0; font-size: 0.9rem; color: #16201B; line-height: 1.5; white-space: pre-wrap;">${escapeHtml(adminMessage)}</p>
+    </div>` : ''
+
   const footer = `
     <p style="margin: 0 0 16px; text-align: center; font-size: 0.78rem; color: #9A9587;">
       En cas de question, contactez directement le restaurant.
@@ -87,6 +98,7 @@ export async function POST(request: NextRequest) {
           <p style="margin: 0; font-size: 0.875rem; color: #5E665E;">Votre demande a été acceptée par le restaurant.</p>
         </div>
         ${detailsTable}
+        ${adminMessageBlock}
         ${(restaurant.address || restaurant.phone) ? `
         <div style="background: #FFFFFF; border: 1px solid #E5DED0; border-radius: 12px; padding: 24px; margin-bottom: 24px;">
           <p style="margin: 0 0 16px; font-size: 0.72rem; font-weight: 600; letter-spacing: 0.1em; color: #9A9587;">LE RESTAURANT</p>
@@ -105,6 +117,7 @@ export async function POST(request: NextRequest) {
           <p style="margin: 0; font-size: 0.875rem; color: #5E665E;">Le restaurant ne peut malheureusement pas honorer votre demande.</p>
         </div>
         ${detailsTable}
+        ${adminMessageBlock}
         ${(restaurant.address || restaurant.phone) ? `
         <div style="background: #FFFFFF; border: 1px solid #E5DED0; border-radius: 12px; padding: 24px; margin-bottom: 24px;">
           <p style="margin: 0 0 16px; font-size: 0.72rem; font-weight: 600; letter-spacing: 0.1em; color: #9A9587;">LE RESTAURANT</p>
