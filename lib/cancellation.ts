@@ -33,9 +33,11 @@ export function computeCancellation(sub: Stripe.Subscription): CancellationPrevi
 
   const withinCommitment = now < commitmentEndsAt
   const msPerMonth = (365.25 / 12) * 24 * 3600 * 1000
-  const monthsLeft = withinCommitment
-    ? Math.max(0, Math.ceil((commitmentEndsAt.getTime() - now.getTime()) / msPerMonth))
-    : 0
+
+  // Cycle de facturation en cours (1-indexé). À t=0 → cycle 1 (premier loyer payé au signup).
+  const currentCycle = Math.floor((now.getTime() - startedAt.getTime()) / msPerMonth) + 1
+  // Mois restants à facturer (les cycles encore non débités).
+  const monthsLeft = withinCommitment ? Math.max(0, months - currentCycle) : 0
   const indemnityEur = monthsLeft * MONTHLY_PRICE_EUR
 
   const noticeEndsAt = new Date(now.getTime() + NOTICE_DAYS * 24 * 3600 * 1000)

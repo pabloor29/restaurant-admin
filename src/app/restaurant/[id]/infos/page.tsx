@@ -1,6 +1,7 @@
 "use client"
 
 import { use, useEffect, useState } from 'react'
+import Link from 'next/link'
 
 type Status = 'active' | 'trialing' | 'canceled' | 'past_due' | 'pending' | 'free'
 
@@ -44,7 +45,6 @@ export default function InfosPage({ params }: { params: Promise<{ id: string }> 
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState('')
-  const [portalLoading, setPortalLoading] = useState(false)
 
   useEffect(() => {
     fetch(`/api/restaurant/${restaurantId}/infos`)
@@ -70,14 +70,6 @@ export default function InfosPage({ params }: { params: Promise<{ id: string }> 
     })
     setMessage(res.ok ? 'Informations enregistrées.' : 'Erreur lors de la sauvegarde.')
     setSaving(false)
-  }
-
-  async function handlePortal() {
-    setPortalLoading(true)
-    const res = await fetch('/api/stripe/portal', { method: 'POST' })
-    const data = await res.json()
-    if (data.url) window.location.href = data.url
-    else setPortalLoading(false)
   }
 
   if (loading) return <p className="font-secondary" style={{ color: 'var(--muted)', fontSize: '0.875rem' }}>Chargement…</p>
@@ -186,15 +178,14 @@ export default function InfosPage({ params }: { params: Promise<{ id: string }> 
             {STATUS_LABELS[status]}
           </span>
         </div>
-        {!['free', 'pending'].includes(status) && (
-          <button
-            onClick={handlePortal}
-            disabled={portalLoading}
-            className="font-secondary cursor-pointer"
-            style={{ backgroundColor: 'var(--surface)', border: '1.5px solid var(--border)', borderRadius: 10, padding: '11px 20px', fontSize: '0.875rem', fontWeight: 500, color: 'var(--ink)', opacity: portalLoading ? 0.5 : 1, cursor: 'pointer' }}
+        {!['free'].includes(status) && (
+          <Link
+            href={`/restaurant/${restaurantId}/billing`}
+            className="font-secondary inline-block"
+            style={{ backgroundColor: 'var(--surface)', border: '1.5px solid var(--border)', borderRadius: 10, padding: '11px 20px', fontSize: '0.875rem', fontWeight: 500, color: 'var(--ink)', textDecoration: 'none' }}
           >
-            {portalLoading ? '…' : 'Gérer mon abonnement →'}
-          </button>
+            Gérer mon abonnement →
+          </Link>
         )}
         {status === 'free' && (
           <p className="font-secondary" style={{ fontSize: '0.875rem', color: 'var(--slate)' }}>Vous bénéficiez d&apos;un accès gratuit.</p>

@@ -25,10 +25,15 @@ const STATUS_COLORS: Record<Status, { text: string; bg: string }> = {
   pending:  { text: 'var(--muted)',            bg: 'var(--surface-alt)' },
 }
 
+function fmtDate(iso: string) {
+  return new Date(iso).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })
+}
+
 export default function BillingPage() {
   const params = useParams<{ id: string }>()
   const restaurantId = params?.id
   const [status, setStatus] = useState<Status | null>(null)
+  const [cancelAt, setCancelAt] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [portalLoading, setPortalLoading] = useState(false)
   const [syncLoading, setSyncLoading] = useState(false)
@@ -42,8 +47,19 @@ export default function BillingPage() {
     setStatus((data?.subscription_status as Status) ?? 'pending')
   }
 
+  async function refreshStripeInfo() {
+    try {
+      const res = await fetch('/api/stripe/info')
+      if (!res.ok) return
+      const data = await res.json()
+      setCancelAt(data.cancelAt ?? null)
+    } catch {
+      // silent
+    }
+  }
+
   useEffect(() => {
-    refreshStatus().finally(() => setLoading(false))
+    Promise.all([refreshStatus(), refreshStripeInfo()]).finally(() => setLoading(false))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -93,13 +109,30 @@ export default function BillingPage() {
         {loading ? (
           <p className="font-secondary" style={{ color: 'var(--muted)', fontSize: '0.875rem' }}>Chargement...</p>
         ) : (
-          <span
-            className="font-secondary inline-flex items-center gap-2"
-            style={{ fontSize: '0.875rem', fontWeight: 600, color: info?.text, backgroundColor: info?.bg, padding: '6px 14px', borderRadius: 99 }}
-          >
-            <span style={{ width: 7, height: 7, borderRadius: '50%', backgroundColor: 'currentColor', display: 'inline-block' }} />
-            {status ? STATUS_LABELS[status] : '—'}
-          </span>
+          <div className="flex flex-col gap-2">
+            <span
+              className="font-secondary inline-flex items-center gap-2 self-start"
+              style={{ fontSize: '0.875rem', fontWeight: 600, color: info?.text, backgroundColor: info?.bg, padding: '6px 14px', borderRadius: 99 }}
+            >
+              <span style={{ width: 7, height: 7, borderRadius: '50%', backgroundColor: 'currentColor', display: 'inline-block' }} />
+              {status ? STATUS_LABELS[status] : '—'}
+            </span>
+            {cancelAt && status === 'active' && (
+              <span
+                className="font-secondary inline-flex items-center gap-2 self-start"
+                style={{
+                  fontSize: '0.78rem',
+                  fontWeight: 600,
+                  color: 'var(--status-warn-text)',
+                  backgroundColor: 'var(--status-warn-bg)',
+                  padding: '5px 12px',
+                  borderRadius: 99,
+                }}
+              >
+                Résiliation programmée — fin du service le {fmtDate(cancelAt)}
+              </span>
+            )}
+          </div>
         )}
       </div>
 
@@ -149,7 +182,7 @@ export default function BillingPage() {
                 {portalLoading ? '...' : 'Mettre à jour mes infos de paiement →'}
               </button>
 
-              {restaurantId && (
+              {restaurantId && !cancelAt && (
                 <Link
                   href={`/restaurant/${restaurantId}/billing/resiliation`}
                   className="w-full font-secondary text-center transition-all"
