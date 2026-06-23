@@ -13,14 +13,23 @@ export default function SubscribeActions() {
   async function handleSubscribe() {
     setLoading(true)
     setError('')
-    const res = await fetch('/api/stripe/checkout', { method: 'POST' })
-    const data = await res.json()
-    if (!res.ok) {
-      setError(data.error ?? 'Une erreur est survenue')
+    try {
+      const res = await fetch('/api/stripe/checkout', { method: 'POST' })
+      const text = await res.text()
+      let data: { url?: string; error?: string } = {}
+      try { data = JSON.parse(text) } catch { /* non-JSON response */ }
+      if (!res.ok || !data.url) {
+        console.error('Checkout error', res.status, text)
+        setError(data.error ?? `Erreur ${res.status}. Réessayez ou contactez le support.`)
+        setLoading(false)
+        return
+      }
+      window.location.href = data.url
+    } catch (err) {
+      console.error('Checkout fetch failed', err)
+      setError('Connexion au serveur impossible. Réessayez.')
       setLoading(false)
-      return
     }
-    window.location.href = data.url
   }
 
   return (

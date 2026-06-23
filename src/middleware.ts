@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
 const PUBLIC_ROUTES = ['/login', '/']
+const ALWAYS_PUBLIC_ROUTES = ['/mentions-legales', '/cgv', '/contrat-abonnement']
 const PUBLIC_API_PREFIXES = ['/api/contact', '/api/stripe/webhook']
 const SETUP_ROUTE = '/setup'
 const SUBSCRIBE_ROUTE = '/subscribe'
@@ -45,6 +46,16 @@ export async function middleware(request: NextRequest) {
 
   // Routes API publiques (pas d'auth requise)
   if (PUBLIC_API_PREFIXES.some(prefix => path.startsWith(prefix))) {
+    return supabaseResponse
+  }
+
+  // Toutes les routes API : pas de redirection. Chaque route gère son auth.
+  if (path.startsWith('/api/')) {
+    return supabaseResponse
+  }
+
+  // Pages légales — accessibles connecté ou non, sans aucune redirection
+  if (ALWAYS_PUBLIC_ROUTES.includes(path)) {
     return supabaseResponse
   }
 

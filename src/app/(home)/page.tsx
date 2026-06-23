@@ -500,6 +500,11 @@ export default function HomePage() {
               RESA<span style={{ color: 'var(--amber-bright)' }}>.</span>
             </span>
           </div>
+          <nav className="font-secondary" style={{ display: 'flex', gap: 18, fontSize: '0.78rem', flexWrap: 'wrap' }}>
+            <Link href="/mentions-legales" style={{ color: 'rgba(245,241,233,0.55)' }}>Mentions légales</Link>
+            <Link href="/cgv" style={{ color: 'rgba(245,241,233,0.55)' }}>CGV</Link>
+            <Link href="/contrat-abonnement" style={{ color: 'rgba(245,241,233,0.55)' }}>Contrat d&apos;abonnement</Link>
+          </nav>
           <p className="font-secondary" style={{ fontSize: '0.78rem', color: 'rgba(245,241,233,0.3)' }}>
             © {new Date().getFullYear()} RESA — resa-service.com
           </p>

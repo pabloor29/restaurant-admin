@@ -1,6 +1,8 @@
 "use client"
 
 import { useState, useEffect } from 'react'
+import Link from 'next/link'
+import { useParams } from 'next/navigation'
 import { createClient } from '../../../../../lib/supabase/client'
 
 type Status = 'active' | 'trialing' | 'canceled' | 'past_due' | 'pending' | 'free'
@@ -24,6 +26,8 @@ const STATUS_COLORS: Record<Status, { text: string; bg: string }> = {
 }
 
 export default function BillingPage() {
+  const params = useParams<{ id: string }>()
+  const restaurantId = params?.id
   const [status, setStatus] = useState<Status | null>(null)
   const [loading, setLoading] = useState(true)
   const [portalLoading, setPortalLoading] = useState(false)
@@ -73,24 +77,45 @@ export default function BillingPage() {
         )}
       </div>
 
-      {status && !['free', 'pending'].includes(status) && (
-        <button
-          onClick={handlePortal}
-          disabled={portalLoading}
-          className="w-full font-secondary cursor-pointer transition-all"
-          style={{
-            backgroundColor: 'var(--surface)',
-            border: '1.5px solid var(--border)',
-            borderRadius: 10,
-            padding: '12px 20px',
-            fontSize: '0.875rem',
-            fontWeight: 500,
-            color: 'var(--ink)',
-            opacity: portalLoading ? 0.5 : 1,
-          }}
-        >
-          {portalLoading ? '...' : 'Gérer mon abonnement →'}
-        </button>
+      {status && !['free', 'pending', 'canceled'].includes(status) && (
+        <div className="flex flex-col gap-3">
+          <button
+            onClick={handlePortal}
+            disabled={portalLoading}
+            className="w-full font-secondary cursor-pointer transition-all"
+            style={{
+              backgroundColor: 'var(--surface)',
+              border: '1.5px solid var(--border)',
+              borderRadius: 10,
+              padding: '12px 20px',
+              fontSize: '0.875rem',
+              fontWeight: 500,
+              color: 'var(--ink)',
+              opacity: portalLoading ? 0.5 : 1,
+            }}
+          >
+            {portalLoading ? '...' : 'Mettre à jour mes infos de paiement →'}
+          </button>
+
+          {restaurantId && (
+            <Link
+              href={`/restaurant/${restaurantId}/billing/resiliation`}
+              className="w-full font-secondary text-center transition-all"
+              style={{
+                backgroundColor: 'transparent',
+                border: '1px solid var(--border)',
+                borderRadius: 10,
+                padding: '12px 20px',
+                fontSize: '0.85rem',
+                fontWeight: 500,
+                color: 'var(--slate)',
+                textDecoration: 'none',
+              }}
+            >
+              Résilier mon abonnement
+            </Link>
+          )}
+        </div>
       )}
 
       {status === 'free' && (

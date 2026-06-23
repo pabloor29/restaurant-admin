@@ -164,3 +164,43 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 @media (prefers-reduced-motion: reduce) {
   .partners-track { animation: none; }
 }
+
+/* ─── LEGAL PAGES ─── */
+.legal-content h2 {
+  font-family: var(--font-primary, inherit);
+  font-size: 1.35rem;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  color: var(--ink);
+  margin: 36px 0 12px;
+}
+.legal-content h3 {
+  font-family: var(--font-primary, inherit);
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--ink);
+  margin: 22px 0 8px;
+}
+.legal-content p {
+  margin: 0 0 14px;
+}
+.legal-content ul {
+  margin: 0 0 18px;
+  padding-left: 22px;
+  list-style: disc;
+}
+.legal-content ul li {
+  margin-bottom: 6px;
+}
+.legal-content a {
+  color: var(--pine);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.legal-content a:hover {
+  color: var(--pine-dark);
+}
+.legal-content strong {
+  font-weight: 700;
+  color: var(--ink);
+}
