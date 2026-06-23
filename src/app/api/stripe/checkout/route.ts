@@ -67,6 +67,7 @@ export async function POST() {
       line_items: [{ price: process.env.STRIPE_PRICE_ID, quantity: 1 }],
       success_url: `${appUrl}/subscribe/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${appUrl}/subscribe`,
+      allow_promotion_codes: true,
       consent_collection: { terms_of_service: 'required' },
       subscription_data: {
         metadata: {
