@@ -2,6 +2,7 @@
 
 import { use, useEffect, useState } from 'react'
 import Link from 'next/link'
+import { createClient } from '../../../../../lib/supabase/client'
 
 type Status = 'active' | 'trialing' | 'canceled' | 'past_due' | 'pending' | 'free'
 
@@ -42,21 +43,77 @@ export default function InfosPage({ params }: { params: Promise<{ id: string }> 
   const [address, setAddress] = useState('')
   const [email, setEmail] = useState('')
   const [status, setStatus] = useState<Status>('pending')
+  const [trialEnd, setTrialEnd] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState('')
 
-  useEffect(() => {
-    fetch(`/api/restaurant/${restaurantId}/infos`)
-      .then(r => r.json())
-      .then(data => {
-        setName(data.name ?? '')
-        setPhone(data.phone ?? '')
-        setAddress(data.address ?? '')
-        setEmail(data.email ?? '')
-        setStatus((data.subscription_status as Status) ?? 'pending')
-        setLoading(false)
+  const [currentPwd, setCurrentPwd] = useState('')
+  const [newPwd, setNewPwd] = useState('')
+  const [confirmPwd, setConfirmPwd] = useState('')
+  const [pwdSaving, setPwdSaving] = useState(false)
+  const [pwdMessage, setPwdMessage] = useState<{ type: 'ok' | 'err'; text: string } | null>(null)
+  const supabase = createClient()
+
+  async function handleChangePassword(e: React.FormEvent) {
+    e.preventDefault()
+    setPwdMessage(null)
+
+    if (newPwd.length < 8) {
+      setPwdMessage({ type: 'err', text: 'Le nouveau mot de passe doit faire au moins 8 caractères.' })
+      return
+    }
+    if (newPwd !== confirmPwd) {
+      setPwdMessage({ type: 'err', text: 'Les mots de passe ne correspondent pas.' })
+      return
+    }
+
+    setPwdSaving(true)
+    try {
+      const { data: userData } = await supabase.auth.getUser()
+      const userEmail = userData.user?.email
+      if (!userEmail) {
+        setPwdMessage({ type: 'err', text: 'Session expirée. Reconnectez-vous.' })
+        return
+      }
+
+      const { error: verifyError } = await supabase.auth.signInWithPassword({
+        email: userEmail,
+        password: currentPwd,
       })
+      if (verifyError) {
+        setPwdMessage({ type: 'err', text: 'Mot de passe actuel incorrect.' })
+        return
+      }
+
+      const { error: updateError } = await supabase.auth.updateUser({ password: newPwd })
+      if (updateError) {
+        setPwdMessage({ type: 'err', text: updateError.message })
+        return
+      }
+
+      setPwdMessage({ type: 'ok', text: 'Mot de passe mis à jour.' })
+      setCurrentPwd('')
+      setNewPwd('')
+      setConfirmPwd('')
+    } finally {
+      setPwdSaving(false)
+    }
+  }
+
+  useEffect(() => {
+    Promise.all([
+      fetch(`/api/restaurant/${restaurantId}/infos`).then(r => r.json()),
+      fetch(`/api/stripe/info?restaurant_id=${encodeURIComponent(restaurantId)}`).then(r => r.ok ? r.json() : null).catch(() => null),
+    ]).then(([infos, stripeInfo]) => {
+      setName(infos.name ?? '')
+      setPhone(infos.phone ?? '')
+      setAddress(infos.address ?? '')
+      setEmail(infos.email ?? '')
+      setStatus(((stripeInfo?.status ?? infos.subscription_status) as Status) ?? 'pending')
+      setTrialEnd(stripeInfo?.trialEnd ?? null)
+      setLoading(false)
+    })
   }, [restaurantId])
 
   async function handleSave(e: React.FormEvent) {
@@ -165,20 +222,111 @@ export default function InfosPage({ params }: { params: Promise<{ id: string }> 
         </button>
       </form>
 
+      {/* Sécurité — mot de passe */}
+      <div style={{ borderTop: '1px solid var(--border)', marginTop: 32, paddingTop: 28 }}>
+        <p className="font-secondary mb-4" style={{ fontSize: '0.72rem', fontWeight: 600, letterSpacing: '0.12em', color: 'var(--muted)' }}>SÉCURITÉ</p>
+        <form onSubmit={handleChangePassword} style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, padding: '24px' }} className="flex flex-col gap-4">
+          <p className="font-secondary" style={{ fontSize: '0.72rem', fontWeight: 600, letterSpacing: '0.1em', color: 'var(--muted)' }}>CHANGER LE MOT DE PASSE</p>
+
+          <div className="flex flex-col gap-1.5">
+            <label className="font-secondary" style={{ fontSize: '0.72rem', fontWeight: 600, color: 'var(--muted)', letterSpacing: '0.08em' }}>MOT DE PASSE ACTUEL</label>
+            <input
+              type="password"
+              value={currentPwd}
+              onChange={e => setCurrentPwd(e.target.value)}
+              required
+              autoComplete="current-password"
+              className="font-secondary"
+              style={inputStyle}
+              onFocus={e => { e.target.style.borderColor = 'var(--pine)' }}
+              onBlur={e => { e.target.style.borderColor = 'var(--border)' }}
+            />
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <label className="font-secondary" style={{ fontSize: '0.72rem', fontWeight: 600, color: 'var(--muted)', letterSpacing: '0.08em' }}>NOUVEAU MOT DE PASSE</label>
+            <input
+              type="password"
+              value={newPwd}
+              onChange={e => setNewPwd(e.target.value)}
+              required
+              minLength={8}
+              autoComplete="new-password"
+              className="font-secondary"
+              style={inputStyle}
+              onFocus={e => { e.target.style.borderColor = 'var(--pine)' }}
+              onBlur={e => { e.target.style.borderColor = 'var(--border)' }}
+            />
+            <p className="font-secondary" style={{ fontSize: '0.72rem', color: 'var(--muted)' }}>8 caractères minimum.</p>
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <label className="font-secondary" style={{ fontSize: '0.72rem', fontWeight: 600, color: 'var(--muted)', letterSpacing: '0.08em' }}>CONFIRMER LE NOUVEAU MOT DE PASSE</label>
+            <input
+              type="password"
+              value={confirmPwd}
+              onChange={e => setConfirmPwd(e.target.value)}
+              required
+              autoComplete="new-password"
+              className="font-secondary"
+              style={inputStyle}
+              onFocus={e => { e.target.style.borderColor = 'var(--pine)' }}
+              onBlur={e => { e.target.style.borderColor = 'var(--border)' }}
+            />
+          </div>
+
+          {pwdMessage && (
+            <p className="font-secondary text-sm" style={{
+              color: pwdMessage.type === 'ok' ? 'var(--status-ok-text)' : 'var(--status-err-text)',
+              backgroundColor: pwdMessage.type === 'ok' ? 'var(--status-ok-bg)' : 'var(--status-err-bg)',
+              borderRadius: 8, padding: '8px 12px',
+            }}>
+              {pwdMessage.text}
+            </p>
+          )}
+
+          <button
+            type="submit"
+            disabled={pwdSaving || !currentPwd || !newPwd || !confirmPwd}
+            className="font-secondary cursor-pointer"
+            style={{ backgroundColor: 'var(--pine)', color: 'var(--paper)', border: 'none', borderRadius: 10, padding: '12px 24px', fontSize: '0.875rem', fontWeight: 600, opacity: (pwdSaving || !currentPwd || !newPwd || !confirmPwd) ? 0.5 : 1, alignSelf: 'flex-start' }}
+          >
+            {pwdSaving ? '…' : 'Mettre à jour le mot de passe'}
+          </button>
+        </form>
+      </div>
+
       {/* Abonnement */}
       <div style={{ borderTop: '1px solid var(--border)', marginTop: 32, paddingTop: 28 }}>
         <p className="font-secondary mb-4" style={{ fontSize: '0.72rem', fontWeight: 600, letterSpacing: '0.12em', color: 'var(--muted)' }}>ABONNEMENT</p>
         <div style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: '18px 20px', marginBottom: 16 }}>
           <p className="font-secondary mb-2" style={{ fontSize: '0.72rem', fontWeight: 600, letterSpacing: '0.1em', color: 'var(--muted)' }}>STATUT</p>
-          <span
-            className="font-secondary inline-flex items-center gap-2"
-            style={{ fontSize: '0.875rem', fontWeight: 600, color: sc.text, backgroundColor: sc.bg, padding: '6px 14px', borderRadius: 99 }}
-          >
-            <span style={{ width: 7, height: 7, borderRadius: '50%', backgroundColor: 'currentColor', display: 'inline-block' }} />
-            {STATUS_LABELS[status]}
-          </span>
+          <div className="flex flex-col gap-2">
+            <span
+              className="font-secondary inline-flex items-center gap-2 self-start"
+              style={{ fontSize: '0.875rem', fontWeight: 600, color: sc.text, backgroundColor: sc.bg, padding: '6px 14px', borderRadius: 99 }}
+            >
+              <span style={{ width: 7, height: 7, borderRadius: '50%', backgroundColor: 'currentColor', display: 'inline-block' }} />
+              {STATUS_LABELS[status]}
+            </span>
+            {status === 'trialing' && trialEnd && (
+              <span
+                className="font-secondary inline-flex items-center gap-2 self-start"
+                style={{
+                  fontSize: '0.78rem',
+                  fontWeight: 600,
+                  color: 'var(--status-warn-text)',
+                  backgroundColor: 'var(--status-warn-bg)',
+                  padding: '5px 12px',
+                  borderRadius: 99,
+                }}
+              >
+                Période d&apos;essai jusqu&apos;au {new Date(trialEnd).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })}
+              </span>
+            )}
+          </div>
         </div>
-        {!['free'].includes(status) && (
+        {!['free', 'trialing'].includes(status) && (
           <Link
             href={`/restaurant/${restaurantId}/billing`}
             className="font-secondary inline-block"
@@ -186,6 +334,11 @@ export default function InfosPage({ params }: { params: Promise<{ id: string }> 
           >
             Gérer mon abonnement →
           </Link>
+        )}
+        {status === 'trialing' && (
+          <p className="font-secondary" style={{ fontSize: '0.875rem', color: 'var(--slate)' }}>
+            Aucun abonnement actif. Vous bénéficiez d&apos;une période d&apos;essai gratuite.
+          </p>
         )}
         {status === 'free' && (
           <p className="font-secondary" style={{ fontSize: '0.875rem', color: 'var(--slate)' }}>Vous bénéficiez d&apos;un accès gratuit.</p>

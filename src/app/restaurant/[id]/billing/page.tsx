@@ -34,6 +34,7 @@ export default function BillingPage() {
   const restaurantId = params?.id
   const [status, setStatus] = useState<Status | null>(null)
   const [cancelAt, setCancelAt] = useState<string | null>(null)
+  const [trialEnd, setTrialEnd] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [portalLoading, setPortalLoading] = useState(false)
   const [syncLoading, setSyncLoading] = useState(false)
@@ -49,10 +50,15 @@ export default function BillingPage() {
 
   async function refreshStripeInfo() {
     try {
-      const res = await fetch('/api/stripe/info')
+      const url = restaurantId
+        ? `/api/stripe/info?restaurant_id=${encodeURIComponent(restaurantId)}`
+        : '/api/stripe/info'
+      const res = await fetch(url)
       if (!res.ok) return
       const data = await res.json()
       setCancelAt(data.cancelAt ?? null)
+      setTrialEnd(data.trialEnd ?? null)
+      if (data.status) setStatus(data.status as Status)
     } catch {
       // silent
     }
@@ -132,11 +138,32 @@ export default function BillingPage() {
                 Résiliation programmée — fin du service le {fmtDate(cancelAt)}
               </span>
             )}
+            {status === 'trialing' && trialEnd && (
+              <span
+                className="font-secondary inline-flex items-center gap-2 self-start"
+                style={{
+                  fontSize: '0.78rem',
+                  fontWeight: 600,
+                  color: 'var(--status-warn-text)',
+                  backgroundColor: 'var(--status-warn-bg)',
+                  padding: '5px 12px',
+                  borderRadius: 99,
+                }}
+              >
+                Période d&apos;essai jusqu&apos;au {fmtDate(trialEnd)}
+              </span>
+            )}
           </div>
         )}
       </div>
 
-      {status && !['free'].includes(status) && (
+      {status === 'trialing' && (
+        <p className="font-secondary" style={{ fontSize: '0.875rem', color: 'var(--slate)' }}>
+          Aucun abonnement actif. Vous bénéficiez d&apos;une période d&apos;essai gratuite.
+        </p>
+      )}
+
+      {status && !['free', 'trialing'].includes(status) && (
         <div className="flex flex-col gap-3">
           <button
             onClick={handleSync}

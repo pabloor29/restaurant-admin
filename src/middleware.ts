@@ -1,6 +1,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
+import { isTrialExpired } from '../lib/trial'
 
 const PUBLIC_ROUTES = ['/login', '/']
 const ALWAYS_PUBLIC_ROUTES = ['/mentions-legales', '/cgv', '/contrat-abonnement']
@@ -68,7 +69,7 @@ export async function middleware(request: NextRequest) {
   // Utilisateur connecté — vérifier le profil
   const { data: profile } = await supabase
     .from('profiles')
-    .select('restaurant_id, is_admin, subscription_status')
+    .select('restaurant_id, is_admin, subscription_status, created_at')
     .eq('id', user.id)
     .single()
 
@@ -76,7 +77,11 @@ export async function middleware(request: NextRequest) {
   const hasRestaurant = !!profile?.restaurant_id
   const restaurantId = profile?.restaurant_id as string | null
   const subscriptionStatus = profile?.subscription_status as string | null
-  const hasActiveSubscription = ACTIVE_STATUSES.includes(subscriptionStatus ?? '')
+  const createdAt = (profile?.created_at as string | undefined) ?? user.created_at
+  const trialExpired =
+    subscriptionStatus === 'trialing' && createdAt ? isTrialExpired(createdAt) : false
+  const hasActiveSubscription =
+    ACTIVE_STATUSES.includes(subscriptionStatus ?? '') && !trialExpired
 
   // Sur /login avec une session valide → rediriger selon le rôle
   if (PUBLIC_ROUTES.includes(path)) {
