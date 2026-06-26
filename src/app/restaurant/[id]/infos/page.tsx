@@ -42,6 +42,10 @@ export default function InfosPage({ params }: { params: Promise<{ id: string }> 
   const [phone, setPhone] = useState('')
   const [address, setAddress] = useState('')
   const [email, setEmail] = useState('')
+  const [googleReviewUrl, setGoogleReviewUrl] = useState('')
+  const [reviewEmailAuto, setReviewEmailAuto] = useState(false)
+  const [reviewSaving, setReviewSaving] = useState(false)
+  const [reviewMessage, setReviewMessage] = useState('')
   const [status, setStatus] = useState<Status>('pending')
   const [trialEnd, setTrialEnd] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
@@ -110,6 +114,8 @@ export default function InfosPage({ params }: { params: Promise<{ id: string }> 
       setPhone(infos.phone ?? '')
       setAddress(infos.address ?? '')
       setEmail(infos.email ?? '')
+      setGoogleReviewUrl(infos.google_review_url ?? '')
+      setReviewEmailAuto(!!infos.review_email_auto)
       setStatus(((stripeInfo?.status ?? infos.subscription_status) as Status) ?? 'pending')
       setTrialEnd(stripeInfo?.trialEnd ?? null)
       setLoading(false)
@@ -127,6 +133,30 @@ export default function InfosPage({ params }: { params: Promise<{ id: string }> 
     })
     setMessage(res.ok ? 'Informations enregistrées.' : 'Erreur lors de la sauvegarde.')
     setSaving(false)
+  }
+
+  async function saveReviewSettings(nextAuto: boolean, nextUrl: string) {
+    setReviewSaving(true)
+    setReviewMessage('')
+    const res = await fetch(`/api/restaurant/${restaurantId}/infos`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ google_review_url: nextUrl, review_email_auto: nextAuto }),
+    })
+    setReviewMessage(res.ok ? 'Enregistré.' : 'Erreur lors de la sauvegarde.')
+    setReviewSaving(false)
+  }
+
+  async function handleReviewSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    await saveReviewSettings(reviewEmailAuto, googleReviewUrl)
+  }
+
+  async function handleToggleAuto() {
+    if (reviewSaving) return
+    const next = !reviewEmailAuto
+    setReviewEmailAuto(next)
+    await saveReviewSettings(next, googleReviewUrl)
   }
 
   if (loading) return <p className="font-secondary" style={{ color: 'var(--muted)', fontSize: '0.875rem' }}>Chargement…</p>
@@ -221,6 +251,101 @@ export default function InfosPage({ params }: { params: Promise<{ id: string }> 
           {saving ? '…' : 'Enregistrer'}
         </button>
       </form>
+
+      {/* Demandes d'avis */}
+      <div style={{ borderTop: '1px solid var(--border)', marginTop: 32, paddingTop: 28 }}>
+        <p className="font-secondary mb-4" style={{ fontSize: '0.72rem', fontWeight: 600, letterSpacing: '0.12em', color: 'var(--muted)' }}>DEMANDES D&apos;AVIS</p>
+        <form onSubmit={handleReviewSubmit} style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, padding: '24px' }} className="flex flex-col gap-4">
+          <div className="flex items-start justify-between gap-4">
+            <div style={{ flex: 1 }}>
+              <p className="font-secondary" style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--ink)' }}>
+                Envoi automatique
+              </p>
+              <p className="font-secondary" style={{ fontSize: '0.78rem', color: 'var(--muted)', marginTop: 4 }}>
+                Envoie un mail au client 12 h après sa réservation pour lui demander un avis Google.
+                Si désactivé, un bouton apparaît sur chaque réservation passée pour envoyer manuellement.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={handleToggleAuto}
+              disabled={reviewSaving}
+              aria-pressed={reviewEmailAuto}
+              title={reviewEmailAuto ? 'Désactiver' : 'Activer'}
+              style={{
+                padding: 4,
+                background: 'transparent',
+                border: 'none',
+                cursor: reviewSaving ? 'not-allowed' : 'pointer',
+                opacity: reviewSaving ? 0.6 : 1,
+                flexShrink: 0,
+              }}
+            >
+              <span
+                style={{
+                  position: 'relative',
+                  display: 'inline-block',
+                  width: 40,
+                  height: 22,
+                  borderRadius: 99,
+                  backgroundColor: reviewEmailAuto ? 'var(--pine)' : 'var(--border)',
+                  transition: 'background-color 0.2s ease',
+                }}
+              >
+                <span
+                  style={{
+                    position: 'absolute',
+                    top: 3,
+                    left: reviewEmailAuto ? 21 : 3,
+                    width: 16,
+                    height: 16,
+                    borderRadius: '50%',
+                    backgroundColor: 'white',
+                    boxShadow: '0 1px 2px rgba(0,0,0,0.15)',
+                    transition: 'left 0.2s cubic-bezier(.25,.46,.45,.94)',
+                  }}
+                />
+              </span>
+            </button>
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <label className="font-secondary" style={{ fontSize: '0.72rem', fontWeight: 600, color: 'var(--muted)', letterSpacing: '0.08em' }}>LIEN GOOGLE AVIS</label>
+            <input
+              type="url"
+              value={googleReviewUrl}
+              onChange={e => setGoogleReviewUrl(e.target.value)}
+              placeholder="https://g.page/r/.../review"
+              className="font-secondary"
+              style={inputStyle}
+              onFocus={e => { e.target.style.borderColor = 'var(--pine)' }}
+              onBlur={e => { e.target.style.borderColor = 'var(--border)' }}
+            />
+            <p className="font-secondary" style={{ fontSize: '0.72rem', color: 'var(--muted)' }}>
+              Récupérez ce lien depuis votre fiche Google Business (« Demander des avis »).
+            </p>
+          </div>
+
+          {reviewMessage && (
+            <p className="font-secondary text-sm" style={{
+              color: reviewMessage.includes('Erreur') ? 'var(--status-err-text)' : 'var(--status-ok-text)',
+              backgroundColor: reviewMessage.includes('Erreur') ? 'var(--status-err-bg)' : 'var(--status-ok-bg)',
+              borderRadius: 8, padding: '8px 12px',
+            }}>
+              {reviewMessage}
+            </p>
+          )}
+
+          <button
+            type="submit"
+            disabled={reviewSaving}
+            className="font-secondary cursor-pointer"
+            style={{ backgroundColor: 'var(--pine)', color: 'var(--paper)', border: 'none', borderRadius: 10, padding: '12px 24px', fontSize: '0.875rem', fontWeight: 600, opacity: reviewSaving ? 0.6 : 1, alignSelf: 'flex-start' }}
+          >
+            {reviewSaving ? '…' : 'Enregistrer'}
+          </button>
+        </form>
+      </div>
 
       {/* Sécurité — mot de passe */}
       <div style={{ borderTop: '1px solid var(--border)', marginTop: 32, paddingTop: 28 }}>

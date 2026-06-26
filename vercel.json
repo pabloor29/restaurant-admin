@@ -8,5 +8,11 @@
       "fix/*": false,
       "art/*": false
     }
-  }
+  },
+  "crons": [
+    {
+      "path": "/api/reservations/review/cron",
+      "schedule": "0 * * * *"
+    }
+  ]
 }

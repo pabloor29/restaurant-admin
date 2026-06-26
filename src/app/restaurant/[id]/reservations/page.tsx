@@ -22,6 +22,7 @@ type Reservation = {
   notes: string | null
   status: Status
   created_at: string
+  review_email_sent_at: string | null
 }
 
 type ChartDay = { label: string; reservations: number; couverts: number }
@@ -73,6 +74,9 @@ export default function ReservationsPage({ params }: { params: Promise<{ id: str
   const [currentDate, setCurrentDate] = useState(new Date())
   const [isAdmin, setIsAdmin] = useState(false)
   const [resetting, setResetting] = useState(false)
+  const [reviewAuto, setReviewAuto] = useState(false)
+  const [googleReviewUrl, setGoogleReviewUrl] = useState<string | null>(null)
+  const [sendingReview, setSendingReview] = useState<string | null>(null)
 
   // Deux listes séparées
   const [pendingList, setPendingList]   = useState<Reservation[]>([])  // en attente (toutes dates)
@@ -115,6 +119,18 @@ export default function ReservationsPage({ params }: { params: Promise<{ id: str
   useEffect(() => {
     supabase.from('restaurants').select('reservation_mode').eq('id', restaurantId).single()
       .then(({ data }) => { if (data?.reservation_mode) setMode(data.reservation_mode as Mode) })
+  }, [restaurantId])
+
+  // ── Load review settings (silencieux si colonnes absentes) ──
+  useEffect(() => {
+    supabase.from('restaurants')
+      .select('review_email_auto, google_review_url')
+      .eq('id', restaurantId).single()
+      .then(({ data, error }) => {
+        if (error) return
+        setReviewAuto(!!data?.review_email_auto)
+        setGoogleReviewUrl(data?.google_review_url ?? null)
+      })
   }, [restaurantId])
 
   // ── Cleanup advanced : suppr réservations > 7j ──
@@ -286,6 +302,32 @@ export default function ReservationsPage({ params }: { params: Promise<{ id: str
     loadDay(); loadTotals(); loadChart()
   }
 
+  // ── Envoi manuel demande d'avis ──
+  async function sendReview(r: Reservation) {
+    if (sendingReview) return
+    if (!r.email) { alert('Cette réservation n\'a pas d\'email client.'); return }
+    if (!googleReviewUrl) { alert('Configurez d\'abord le lien Google avis dans Infos restaurant.'); return }
+    setSendingReview(r.id)
+    try {
+      const res = await fetch('/api/reservations/review', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reservation_id: r.id }),
+      })
+      const json = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        alert(`Erreur : ${json.error ?? 'envoi impossible'}`)
+        return
+      }
+      const update = (list: Reservation[]) =>
+        list.map(x => x.id === r.id ? { ...x, review_email_sent_at: new Date().toISOString() } : x)
+      setDayList(update)
+      setPendingList(update)
+    } finally {
+      setSendingReview(null)
+    }
+  }
+
   // ── Réinitialisation stats (admin uniquement) ──
   async function handleReset() {
     if (!confirm('Réinitialiser toutes les statistiques de ce restaurant ? Cette action est irréversible.')) return
@@ -359,7 +401,7 @@ export default function ReservationsPage({ params }: { params: Promise<{ id: str
         </div>
       ) : (
         <div className="flex flex-col gap-3 mb-8">
-          {pendingList.map(r => <ReservationCard key={r.id} r={r} mode={mode} onAction={handleAction} showDate />)}
+          {pendingList.map(r => <ReservationCard key={r.id} r={r} mode={mode} onAction={handleAction} showDate showReview={!reviewAuto && !!googleReviewUrl} onSendReview={sendReview} sendingReview={sendingReview === r.id} />)}
         </div>
       )}
 
@@ -443,7 +485,7 @@ export default function ReservationsPage({ params }: { params: Promise<{ id: str
               </div>
             ) : (
               <div className="flex flex-col gap-3">
-                {dayList.map(r => <ReservationCard key={r.id} r={r} mode={mode} onAction={handleAction} />)}
+                {dayList.map(r => <ReservationCard key={r.id} r={r} mode={mode} onAction={handleAction} showReview={!reviewAuto && !!googleReviewUrl} onSendReview={sendReview} sendingReview={sendingReview === r.id} />)}
               </div>
             )}
           </div>
@@ -648,17 +690,25 @@ export default function ReservationsPage({ params }: { params: Promise<{ id: str
 }
 
 // ── Carte réservation ──
-function ReservationCard({ r, mode, onAction, showDate = false }: {
+function ReservationCard({ r, mode, onAction, showDate = false, showReview = false, onSendReview, sendingReview = false }: {
   r: Reservation
   mode: Mode
   onAction: (r: Reservation, action: Status) => void
   showDate?: boolean
+  showReview?: boolean
+  onSendReview?: (r: Reservation) => void
+  sendingReview?: boolean
 }) {
   const sc = STATUS_COLOR[r.status]
   const dateLabel = showDate
     ? new Date(r.date + 'T00:00:00').toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })
     : null
   const sentLabel = new Date(r.created_at).toLocaleString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+  const reservationStart = new Date(`${r.date}T${r.time_slot}:00`)
+  const isPast = reservationStart.getTime() < Date.now()
+  const reviewable = showReview && mode === 'advanced' && !!r.email
+    && (r.status === 'accepted' || r.status === 'arrived')
+    && isPast
 
   return (
     <div className="rounded-xl p-4" style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)', borderLeft: `3px solid ${r.status === 'pending' ? 'var(--status-warn-text)' : r.status === 'accepted' ? 'var(--status-ok-text)' : r.status === 'arrived' ? 'var(--status-info-text)' : 'var(--border)'}` }}>
@@ -700,6 +750,22 @@ function ReservationCard({ r, mode, onAction, showDate = false }: {
               Absent
             </button>
           </>
+        )}
+        {reviewable && (
+          r.review_email_sent_at ? (
+            <span className="font-secondary" style={{ backgroundColor: 'var(--surface-alt)', border: '1px solid var(--border)', borderRadius: 8, padding: '6px 14px', fontSize: '0.8rem', color: 'var(--muted)' }}>
+              ✓ Avis envoyé
+            </span>
+          ) : (
+            <button
+              onClick={() => onSendReview?.(r)}
+              disabled={sendingReview}
+              className="font-secondary cursor-pointer"
+              style={{ backgroundColor: 'var(--pine-light)', border: '1px solid var(--pine)', borderRadius: 8, padding: '6px 14px', fontSize: '0.8rem', fontWeight: 600, color: 'var(--pine)', opacity: sendingReview ? 0.6 : 1 }}
+            >
+              {sendingReview ? '…' : '★ Demander un avis'}
+            </button>
+          )
         )}
       </div>
     </div>
