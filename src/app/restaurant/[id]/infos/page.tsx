@@ -3,6 +3,7 @@
 import { use, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { createClient } from '../../../../../lib/supabase/client'
+import PushNotifications from '../PushNotifications'
 
 type Status = 'active' | 'trialing' | 'canceled' | 'past_due' | 'pending' | 'free'
 
@@ -251,6 +252,9 @@ export default function InfosPage({ params }: { params: Promise<{ id: string }> 
           {saving ? '…' : 'Enregistrer'}
         </button>
       </form>
+
+      {/* Notifications push — nouvelles réservations */}
+      <PushNotifications />
 
       {/* Demandes d'avis */}
       <div style={{ borderTop: '1px solid var(--border)', marginTop: 32, paddingTop: 28 }}>

@@ -17,7 +17,8 @@
     "video:carbo:vertical": "remotion render src/remotion/index.ts CarboTestimonial-Vertical public/carbo-testimonial-vertical.mp4",
     "video:carbo:all": "npm run video:carbo && npm run video:carbo:square && npm run video:carbo:vertical",
     "video:li": "remotion render src/remotion/index.ts ResaLinkedInPost public/resa-linkedin-post.mp4",
-    "video:li:vertical": "remotion render src/remotion/index.ts ResaLinkedInPost-Vertical public/resa-linkedin-post-vertical.mp4"
+    "video:li:vertical": "remotion render src/remotion/index.ts ResaLinkedInPost-Vertical public/resa-linkedin-post-vertical.mp4",
+    "video:avis": "remotion render src/remotion/index.ts ResaAvisGoogle public/resa-avis-google.mp4"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.4",
@@ -39,7 +40,8 @@
     "remotion": "^4.0.481",
     "resend": "^6.14.0",
     "stripe": "^22.2.1",
-    "tailwind-merge": "^3.6.0"
+    "tailwind-merge": "^3.6.0",
+    "web-push": "^3.6.7"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
@@ -48,6 +50,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/web-push": "^3.6.4",
     "autoprefixer": "^10.4.21",
     "eslint": "^9",
     "eslint-config-next": "15.5.3",
