@@ -2,6 +2,7 @@ import { Composition } from 'remotion'
 import { ResaVSL, FPS, DURATION } from './ResaVSL'
 import { CarboTestimonial, CARBO_FPS, CARBO_DURATION } from './CarboTestimonial'
 import { ResaLinkedInPost, RESA_LI_FPS, RESA_LI_DURATION } from './ResaLinkedInPost'
+import { ResaAvisGoogle, AVIS_FPS, AVIS_DURATION } from './ResaAvisGoogle'
 
 export const RemotionRoot = () => (
   <>
@@ -77,6 +78,17 @@ export const RemotionRoot = () => (
       fps={RESA_LI_FPS}
       width={1080}
       height={1350}
+    />
+
+    {/* ── RESA — Nouvelle fonctionnalité : demande d'avis Google ── */}
+    {/* 9:16 Vertical — Instagram Reels / Stories */}
+    <Composition
+      id="ResaAvisGoogle"
+      component={ResaAvisGoogle}
+      durationInFrames={AVIS_DURATION}
+      fps={AVIS_FPS}
+      width={1080}
+      height={1920}
     />
   </>
 )
