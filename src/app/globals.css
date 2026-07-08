@@ -45,9 +45,9 @@
 
 /* ─── TYPOGRAPHY ─── */
 :root {
-  --font-primary:   'Schibsted Grotesk', sans-serif;
-  --font-secondary: 'Hanken Grotesk', sans-serif;
-  --font-accent:    'Newsreader', serif;
+  --font-primary:   var(--font-schibsted), 'Schibsted Grotesk', sans-serif;
+  --font-secondary: var(--font-hanken), 'Hanken Grotesk', sans-serif;
+  --font-accent:    var(--font-newsreader), 'Newsreader', serif;
 }
 
 .font-primary   { font-family: var(--font-primary); }

@@ -152,6 +152,33 @@ function ReservationMockup() {
   )
 }
 
+const FAQ_ITEMS = [
+  {
+    q: 'Comment fonctionne un système de réservation en ligne pour restaurant ?',
+    a: "Le formulaire de réservation est intégré directement à votre site web. Vos clients choisissent une date, un horaire et un nombre de couverts ; chaque réservation déclenche automatiquement un e-mail de confirmation. Vos horaires, fermetures et congés sont respectés en temps réel, sans intervention de votre part.",
+  },
+  {
+    q: "Combien coûte un site web avec réservations en ligne pour un restaurant ?",
+    a: "RESA propose un abonnement unique à 67 €/mois, engagement 1 an, qui inclut le site web sur-mesure, le système de réservation en ligne, l'hébergement, la maintenance et le référencement (SEO). Une formule site vitrine sans réservation est aussi disponible sur demande.",
+  },
+  {
+    q: 'RESA gère-t-il le référencement (SEO) de mon restaurant sur Google ?',
+    a: "Oui. L'optimisation pour le référencement naturel (SEO) est incluse : structure technique, balises, vitesse de chargement et données structurées pour aider votre restaurant à apparaître dans les résultats Google lorsque des clients recherchent un restaurant ou une table près de chez eux.",
+  },
+  {
+    q: 'Puis-je modifier mes horaires, menus et congés moi-même ?',
+    a: "Oui. Votre espace d'administration vous permet de mettre à jour vos horaires, menus, formules de groupe, fermetures, congés et évènements à tout moment, depuis un seul endroit, sans nous contacter.",
+  },
+  {
+    q: 'Ai-je besoin de compétences techniques pour gérer mon site de restaurant ?',
+    a: "Non. L'espace d'administration est pensé pour être rapide et intuitif, sans aucune formation. Vous gérez votre restaurant ; RESA s'occupe de toute la technique (hébergement, maintenance, mises à jour).",
+  },
+  {
+    q: 'En combien de temps mon restaurant est-il en ligne ?',
+    a: "La mise en ligne se fait généralement en moins de 2 semaines : un premier échange gratuit, la création du site sur-mesure et la configuration du système de réservation, puis l'accès à votre espace d'administration.",
+  },
+]
+
 const JSON_LD = {
   '@context': 'https://schema.org',
   '@graph': [
@@ -163,6 +190,12 @@ const JSON_LD = {
       logo: 'https://resa-service.com/favicon.svg',
       description:
         "RESA crée le site web de votre restaurant, gère les réservations en ligne et centralise l'administration.",
+      areaServed: { '@type': 'Country', name: 'France' },
+      knowsAbout: [
+        'création de site web pour restaurant',
+        'système de réservation en ligne pour restaurant',
+        'référencement SEO pour restaurant',
+      ],
     },
     {
       '@type': 'WebSite',
@@ -180,6 +213,7 @@ const JSON_LD = {
       url: 'https://resa-service.com',
       description:
         "Plateforme tout-en-un pour restaurants : site web sur-mesure, réservations en ligne, gestion des horaires, menus, congés et évènements.",
+      areaServed: { '@type': 'Country', name: 'France' },
       offers: {
         '@type': 'Offer',
         price: '67',
@@ -192,6 +226,15 @@ const JSON_LD = {
         },
         url: 'https://resa-service.com/subscribe',
       },
+    },
+    {
+      '@type': 'FAQPage',
+      '@id': 'https://resa-service.com/#faq',
+      mainEntity: FAQ_ITEMS.map(item => ({
+        '@type': 'Question',
+        name: item.q,
+        acceptedAnswer: { '@type': 'Answer', text: item.a },
+      })),
     },
   ],
 }
@@ -219,6 +262,7 @@ export default function HomePage() {
               <Link href="#offre" className="font-secondary" style={{ fontSize: '0.875rem', color: 'var(--slate)', textDecoration: 'none' }}>L&apos;offre</Link>
               <Link href="#fonctionnalites" className="font-secondary" style={{ fontSize: '0.875rem', color: 'var(--slate)', textDecoration: 'none' }}>Fonctionnalités</Link>
               <Link href="#tarif" className="font-secondary" style={{ fontSize: '0.875rem', color: 'var(--slate)', textDecoration: 'none' }}>Tarif</Link>
+              <Link href="#faq" className="font-secondary" style={{ fontSize: '0.875rem', color: 'var(--slate)', textDecoration: 'none' }}>FAQ</Link>
               <Link href="#contact" className="font-secondary" style={{ fontSize: '0.875rem', color: 'var(--slate)', textDecoration: 'none' }}>Contact</Link>
             </div>
             <Link href="/login" className="font-secondary" style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--paper)', backgroundColor: 'var(--pine)', padding: '8px 18px', borderRadius: 10, textDecoration: 'none' }}>
@@ -237,7 +281,7 @@ export default function HomePage() {
               DÉVELOPPEUR WEB · RESTAURATEURS
             </p>
             <h1 className="font-primary" style={{ fontSize: 'clamp(2.4rem,6vw,4.2rem)', lineHeight: 0.95, fontWeight: 800, letterSpacing: '-0.04em', color: 'var(--ink)', marginBottom: 24 }}>
-              L&apos;espace admin qui pilote votre restaurant.
+              Le site web et les réservations en ligne de votre restaurant.
             </h1>
             <p className="font-secondary" style={{ fontSize: '1.05rem', color: 'var(--slate)', lineHeight: 1.6, marginBottom: 36 }}>
               Site web sur-mesure, réservations automatisées et espace d&apos;administration — tout-en-un, sans abonnement complexe.
@@ -448,6 +492,28 @@ export default function HomePage() {
                   <span className="font-secondary" style={{ fontSize: '0.8rem', color: 'var(--pine)', fontWeight: 600 }}>Voir le site →</span>
                 </div>
               </a>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* FAQ */}
+      <section id="faq" style={{ backgroundColor: 'var(--paper)', borderTop: '1px solid var(--border)', padding: '72px 24px' }}>
+        <div style={{ maxWidth: 760, margin: '0 auto' }}>
+          <p className="font-secondary" style={{ fontSize: '0.72rem', letterSpacing: '0.15em', color: 'var(--pine)', fontWeight: 600, marginBottom: 12 }}>QUESTIONS FRÉQUENTES</p>
+          <h2 className="font-primary" style={{ fontSize: 'clamp(1.8rem,4vw,2.6rem)', fontWeight: 800, letterSpacing: '-0.03em', color: 'var(--ink)', marginBottom: 40, lineHeight: 1.1 }}>
+            Tout savoir sur votre site et vos réservations.
+          </h2>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {FAQ_ITEMS.map(item => (
+              <details key={item.q} style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, padding: '18px 22px' }}>
+                <summary className="font-primary" style={{ fontSize: '1.02rem', fontWeight: 700, color: 'var(--ink)', letterSpacing: '-0.01em', cursor: 'pointer', listStyle: 'none' }}>
+                  {item.q}
+                </summary>
+                <p className="font-secondary" style={{ fontSize: '0.92rem', color: 'var(--slate)', lineHeight: 1.65, marginTop: 12 }}>
+                  {item.a}
+                </p>
+              </details>
             ))}
           </div>
         </div>
