@@ -149,13 +149,22 @@ export default function AdminPage() {
               ADMINISTRATION
             </p>
           </div>
-          <button
-            onClick={async () => { await supabase.auth.signOut(); router.push('/login') }}
-            className="font-secondary cursor-pointer"
-            style={{ color: 'var(--muted)', background: 'none', border: 'none', fontSize: '0.85rem' }}
-          >
-            Déconnexion
-          </button>
+          <div className="flex items-center gap-3">
+            <Link
+              href="/admin/prospects"
+              className="font-secondary"
+              style={{ color: 'var(--pine)', backgroundColor: 'var(--pine-light)', border: 'none', borderRadius: 99, padding: '7px 14px', fontSize: '0.8rem', fontWeight: 600, textDecoration: 'none' }}
+            >
+              Prospection →
+            </Link>
+            <button
+              onClick={async () => { await supabase.auth.signOut(); router.push('/login') }}
+              className="font-secondary cursor-pointer"
+              style={{ color: 'var(--muted)', background: 'none', border: 'none', fontSize: '0.85rem' }}
+            >
+              Déconnexion
+            </button>
+          </div>
         </div>
 
         {/* Accès restaurants — recherche */}
