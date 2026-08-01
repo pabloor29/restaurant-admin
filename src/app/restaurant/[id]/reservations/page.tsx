@@ -280,6 +280,17 @@ export default function ReservationsPage({ params }: { params: Promise<{ id: str
     setAdminMessage('')
   }
 
+  // ── Suppression (sans email de refus) ──
+  async function handleDelete(r: Reservation) {
+    const label = r.status === 'pending'
+      ? `Supprimer la demande de ${r.name} ? Aucun email ne sera envoyé au client.`
+      : `Supprimer la réservation de ${r.name} (${r.time_slot}) ? Cette action est irréversible.`
+    if (!confirm(label)) return
+    await supabase.from('reservations').delete().eq('id', r.id)
+    loadPending()
+    if (mode === 'advanced') loadDay()
+  }
+
   // ── Ajout manuel (advanced) ──
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault()
@@ -401,7 +412,7 @@ export default function ReservationsPage({ params }: { params: Promise<{ id: str
         </div>
       ) : (
         <div className="flex flex-col gap-3 mb-8">
-          {pendingList.map(r => <ReservationCard key={r.id} r={r} mode={mode} onAction={handleAction} showDate showReview={!reviewAuto && !!googleReviewUrl} onSendReview={sendReview} sendingReview={sendingReview === r.id} />)}
+          {pendingList.map(r => <ReservationCard key={r.id} r={r} mode={mode} onAction={handleAction} onDelete={handleDelete} showDate showReview={!reviewAuto && !!googleReviewUrl} onSendReview={sendReview} sendingReview={sendingReview === r.id} />)}
         </div>
       )}
 
@@ -485,7 +496,7 @@ export default function ReservationsPage({ params }: { params: Promise<{ id: str
               </div>
             ) : (
               <div className="flex flex-col gap-3">
-                {dayList.map(r => <ReservationCard key={r.id} r={r} mode={mode} onAction={handleAction} showReview={!reviewAuto && !!googleReviewUrl} onSendReview={sendReview} sendingReview={sendingReview === r.id} />)}
+                {dayList.map(r => <ReservationCard key={r.id} r={r} mode={mode} onAction={handleAction} onDelete={handleDelete} showReview={!reviewAuto && !!googleReviewUrl} onSendReview={sendReview} sendingReview={sendingReview === r.id} />)}
               </div>
             )}
           </div>
@@ -690,10 +701,11 @@ export default function ReservationsPage({ params }: { params: Promise<{ id: str
 }
 
 // ── Carte réservation ──
-function ReservationCard({ r, mode, onAction, showDate = false, showReview = false, onSendReview, sendingReview = false }: {
+function ReservationCard({ r, mode, onAction, onDelete, showDate = false, showReview = false, onSendReview, sendingReview = false }: {
   r: Reservation
   mode: Mode
   onAction: (r: Reservation, action: Status) => void
+  onDelete: (r: Reservation) => void
   showDate?: boolean
   showReview?: boolean
   onSendReview?: (r: Reservation) => void
@@ -767,6 +779,14 @@ function ReservationCard({ r, mode, onAction, showDate = false, showReview = fal
             </button>
           )
         )}
+        <button
+          onClick={() => onDelete(r)}
+          title={r.status === 'pending' ? 'Supprimer sans envoyer de mail' : 'Supprimer la réservation'}
+          className="font-secondary cursor-pointer"
+          style={{ marginLeft: 'auto', backgroundColor: 'transparent', border: '1px solid var(--border)', borderRadius: 8, padding: '6px 12px', fontSize: '0.8rem', color: 'var(--muted)' }}
+        >
+          🗑 Supprimer
+        </button>
       </div>
     </div>
   )
