@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
 
   const { data: restaurant } = await admin
     .from('restaurants')
-    .select('id, name, google_review_url')
+    .select('id, name, google_review_url, email')
     .eq('id', reservation.restaurant_id)
     .single()
 

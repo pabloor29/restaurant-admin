@@ -17,6 +17,7 @@ type RestaurantRow = {
   id: string
   name: string
   google_review_url: string | null
+  email?: string | null
 }
 
 const resend = new Resend(process.env.RESEND_API_KEY)
@@ -79,11 +80,26 @@ export async function sendReviewEmail(
     </div>
   </div>`
 
+  // Plain-text alternative lowers spam score; HTML layout is left untouched.
+  const text = `${restaurantName}
+
+Merci de votre visite !
+
+Nous espérons que vous avez passé un agréable moment chez nous le ${fmtDate(reservation.date)} à ${reservation.time_slot}.
+
+Votre avis nous aiderait beaucoup. Prendriez-vous une minute pour le partager sur Google ?
+${reviewUrl}
+
+Merci pour votre soutien.
+Réservations gérées avec RESA — resa-service.com`
+
   const { error } = await resend.emails.send({
     from,
     to: reservation.email,
+    replyTo: restaurant.email ?? undefined,
     subject: `Votre avis sur ${restaurantName} ?`,
     html,
+    text,
   })
 
   if (error) return { ok: false, error: error.message }

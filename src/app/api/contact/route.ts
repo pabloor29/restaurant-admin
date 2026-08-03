@@ -13,11 +13,21 @@ export async function POST(request: NextRequest) {
   const from = process.env.RESEND_FROM_EMAIL!
   const to = process.env.CONTACT_EMAIL!
 
+  // Plain-text alternative lowers spam score; HTML layout is left untouched.
+  const text = `RESA — Nouveau contact
+
+NOM : ${name}
+EMAIL : ${email}${restaurant ? `\nRESTAURANT : ${restaurant}` : ''}
+
+MESSAGE
+${message}`
+
   const { error } = await resend.emails.send({
     from,
     to,
     replyTo: email,
     subject: `Nouveau message de ${name}${restaurant ? ` — ${restaurant}` : ''}`,
+    text,
     html: `
       <div style="font-family: sans-serif; max-width: 560px; color: #16201B;">
         <div style="background: #13503B; padding: 24px 28px; border-radius: 12px 12px 0 0;">

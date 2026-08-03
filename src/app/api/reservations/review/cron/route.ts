@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
 
   const { data: restaurants } = await admin
     .from('restaurants')
-    .select('id, name, google_review_url, review_email_auto')
+    .select('id, name, google_review_url, review_email_auto, email')
     .eq('review_email_auto', true)
     .not('google_review_url', 'is', null)
 

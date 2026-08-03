@@ -28,14 +28,14 @@ export async function POST(request: NextRequest) {
 
   const { data: reservation } = await admin
     .from('reservations')
-    .select('*, restaurants(name, phone, address)')
+    .select('*, restaurants(name, phone, address, email)')
     .eq('id', reservation_id)
     .single()
 
   if (!reservation) return NextResponse.json({ error: 'Réservation introuvable' }, { status: 404 })
   if (!reservation.email) return NextResponse.json({ success: true, skipped: true })
 
-  const restaurant = reservation.restaurants as { name: string; phone: string | null; address: string | null }
+  const restaurant = reservation.restaurants as { name: string; phone: string | null; address: string | null; email: string | null }
   const from = process.env.RESEND_FROM_EMAIL!
   const isAccepted = action === 'accepted'
 
@@ -128,15 +128,55 @@ export async function POST(request: NextRequest) {
         ${footer}
       </div>`
 
-  const { error } = await resend.emails.send({
+  // Plain-text alternative. HTML-only mails score worse with spam filters; a
+  // text/plain part lowers the score. The HTML layout above is left untouched.
+  const detailsText = [
+    `Nom : ${reservation.name}`,
+    `Date : ${fmtDate(reservation.date)}`,
+    `Heure : ${reservation.time_slot}`,
+    `Couverts : ${reservation.covers} personne${reservation.covers > 1 ? 's' : ''}`,
+    reservation.notes ? `Notes : ${reservation.notes}` : null,
+  ].filter(Boolean).join('\n')
+
+  const adminMessageText = adminMessage ? `\nMESSAGE DU RESTAURANT\n${adminMessage}\n` : ''
+  const restaurantText = (restaurant.address || restaurant.phone)
+    ? `\nLE RESTAURANT\n${restaurant.name}${restaurant.address ? `\n${restaurant.address}` : ''}${restaurant.phone ? `\n${restaurant.phone}` : ''}\n`
+    : ''
+
+  const text = `${restaurant.name}
+
+${isAccepted
+    ? '✓ Réservation confirmée\nVotre demande a été acceptée par le restaurant.'
+    : 'Réservation non disponible\nLe restaurant ne peut malheureusement pas honorer votre demande.'}
+
+VOTRE DEMANDE
+${detailsText}
+${adminMessageText}${restaurantText}
+En cas de question, contactez directement le restaurant.
+Réservations gérées avec RESA — resa-service.com`
+
+  const { data: sent, error } = await resend.emails.send({
     from,
     to: reservation.email,
+    replyTo: restaurant.email ?? undefined,
     subject: isAccepted
       ? `Réservation confirmée — ${restaurant.name}`
       : `Réservation non disponible — ${restaurant.name}`,
     html,
+    text,
   })
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  // Store the Resend message id so the delivery webhook can flag this
+  // reservation if the client's mailbox rejects the mail. Reset any previous
+  // bounce flag in case this is a re-send to a corrected address.
+  if (sent?.id) {
+    await admin
+      .from('reservations')
+      .update({ confirm_email_id: sent.id, email_bounced: false, email_bounced_at: null })
+      .eq('id', reservation.id)
+  }
+
   return NextResponse.json({ success: true })
 }

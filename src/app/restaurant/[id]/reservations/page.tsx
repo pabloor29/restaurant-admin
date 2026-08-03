@@ -23,6 +23,7 @@ type Reservation = {
   status: Status
   created_at: string
   review_email_sent_at: string | null
+  email_bounced: boolean | null
 }
 
 type ChartDay = { label: string; reservations: number; couverts: number }
@@ -731,6 +732,11 @@ function ReservationCard({ r, mode, onAction, onDelete, showDate = false, showRe
             <span className="font-secondary" style={{ fontSize: '0.72rem', fontWeight: 600, color: sc.text, backgroundColor: sc.bg, padding: '2px 8px', borderRadius: 99 }}>
               {STATUS_LABEL[r.status]}
             </span>
+            {r.email_bounced && (
+              <span className="font-secondary" style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--status-err-text)', backgroundColor: 'var(--status-err-bg)', padding: '2px 8px', borderRadius: 99 }}>
+                ⚠ Email non reçu
+              </span>
+            )}
           </div>
           <p className="font-secondary mt-1" style={{ fontSize: '0.85rem', color: 'var(--slate)' }}>
             {dateLabel && <span className="capitalize">{dateLabel} · </span>}
@@ -739,6 +745,12 @@ function ReservationCard({ r, mode, onAction, onDelete, showDate = false, showRe
             {r.email && ` · ${r.email}`}
           </p>
           {r.notes && <p className="font-accent mt-1" style={{ fontSize: '0.82rem', color: 'var(--slate)' }}>{r.notes}</p>}
+          {r.email_bounced && (
+            <p className="font-secondary mt-2" style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--status-err-text)', backgroundColor: 'var(--status-err-bg)', borderRadius: 8, padding: '8px 10px' }}>
+              L&apos;email du client n&apos;existe pas — aucun mail reçu.
+              {r.phone ? ` Le contacter par téléphone : ${r.phone}` : ' Aucun téléphone renseigné.'}
+            </p>
+          )}
           {showDate && <p className="font-secondary mt-1" style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>Reçue le {sentLabel}</p>}
         </div>
       </div>
