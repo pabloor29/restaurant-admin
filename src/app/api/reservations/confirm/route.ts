@@ -155,7 +155,7 @@ ${adminMessageText}${restaurantText}
 En cas de question, contactez directement le restaurant.
 Réservations gérées avec RESA — resa-service.com`
 
-  const { data: sent, error } = await resend.emails.send({
+  const { error } = await resend.emails.send({
     from,
     to: reservation.email,
     replyTo: restaurant.email ?? undefined,
@@ -167,16 +167,5 @@ Réservations gérées avec RESA — resa-service.com`
   })
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-
-  // Store the Resend message id so the delivery webhook can flag this
-  // reservation if the client's mailbox rejects the mail. Reset any previous
-  // bounce flag in case this is a re-send to a corrected address.
-  if (sent?.id) {
-    await admin
-      .from('reservations')
-      .update({ confirm_email_id: sent.id, email_bounced: false, email_bounced_at: null })
-      .eq('id', reservation.id)
-  }
-
   return NextResponse.json({ success: true })
 }

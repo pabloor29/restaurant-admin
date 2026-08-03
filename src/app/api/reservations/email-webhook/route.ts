@@ -11,13 +11,16 @@ function getAdminClient() {
 
 type ResendEvent = {
   type: string
-  data?: { email_id?: string }
+  data?: { to?: string | string[] }
 }
 
-// Resend delivery webhook (signed with Svix). Flags a reservation when its
-// confirmation email hard-bounces — the client mailbox does not exist, so they
-// received nothing and the restaurant must call them to confirm. Matches the
-// event back to the reservation via the stored Resend message id.
+// Resend delivery webhook (Svix-signed). One webhook per Resend account — it
+// receives bounce events for every mail sent on the account, including the
+// booking-request confirmation the restaurant's public site sends to the client.
+// That first mail is what actually bounces on an invalid address: once it hard-
+// bounces Resend suppresses the address, so any later accept/refuse mail is never
+// delivered and never fires its own bounce. We therefore match the event back to
+// the reservation by the RECIPIENT ADDRESS, not by a stored message id.
 export async function POST(request: NextRequest) {
   const secret = process.env.RESEND_WEBHOOK_SECRET
   if (!secret) return NextResponse.json({ error: 'Not configured' }, { status: 500 })
@@ -36,8 +39,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Invalid signature' }, { status: 401 })
   }
 
-  const emailId = evt.data?.email_id
-  if (!emailId) return NextResponse.json({ ok: true, skipped: 'no_email_id' })
+  const to = evt.data?.to
+  const raw = (Array.isArray(to) ? to : to ? [to] : []).map((e) => e.trim()).filter(Boolean)
+  // Match exact and lowercased forms so a case difference between the sent and
+  // stored address still resolves. Avoids ilike so an `_` in a local part can't
+  // act as a wildcard and over-match.
+  const recipients = Array.from(new Set(raw.flatMap((e) => [e, e.toLowerCase()])))
+  if (recipients.length === 0) return NextResponse.json({ ok: true, skipped: 'no_recipient' })
 
   const admin = getAdminClient()
 
@@ -45,13 +53,15 @@ export async function POST(request: NextRequest) {
     await admin
       .from('reservations')
       .update({ email_bounced: true, email_bounced_at: new Date().toISOString() })
-      .eq('confirm_email_id', emailId)
+      .in('email', recipients)
+      .eq('email_bounced', false)
   } else if (evt.type === 'email.delivered') {
-    // Delivered after all (e.g. a transient issue cleared) → drop the flag.
+    // A mail to the same address got through → the address works, clear the flag.
     await admin
       .from('reservations')
       .update({ email_bounced: false, email_bounced_at: null })
-      .eq('confirm_email_id', emailId)
+      .in('email', recipients)
+      .eq('email_bounced', true)
   }
 
   return NextResponse.json({ ok: true })
