@@ -382,6 +382,10 @@ export default function ReservationsPage({ params }: { params: Promise<{ id: str
   const barSize = chartScale === 'annee' ? 28 : chartScale === '7j' ? 28 : chartScale === 'mois' ? 10 : 5
   const xInterval = chartScale === 'annee' ? 0 : chartScale === '7j' ? 0 : chartScale === 'mois' ? 4 : 9
 
+  // Totaux de la période sélectionnée (somme du graphique)
+  const periodRes      = chartData.reduce((s, d) => s + d.reservations, 0)
+  const periodCouverts = chartData.reduce((s, d) => s + d.couverts, 0)
+
   return (
     <div>
       {/* ── INDICATEUR EN ATTENTE ── */}
@@ -588,6 +592,18 @@ export default function ReservationsPage({ params }: { params: Promise<{ id: str
               Actuel
             </button>
           )}
+        </div>
+
+        {/* Totaux de la période sélectionnée */}
+        <div className="flex gap-3 flex-wrap mb-3">
+          <div style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 10, padding: '10px 18px', flex: '1 1 0', minWidth: 140 }}>
+            <p className="font-secondary" style={{ fontSize: '0.68rem', fontWeight: 600, color: 'var(--muted)', letterSpacing: '0.08em', marginBottom: 3 }}>RÉSERVATIONS · PÉRIODE</p>
+            <p className="font-primary" style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--pine)', letterSpacing: '-0.03em', lineHeight: 1 }}>{periodRes}</p>
+          </div>
+          <div style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 10, padding: '10px 18px', flex: '1 1 0', minWidth: 140 }}>
+            <p className="font-secondary" style={{ fontSize: '0.68rem', fontWeight: 600, color: 'var(--muted)', letterSpacing: '0.08em', marginBottom: 3 }}>COUVERTS · PÉRIODE</p>
+            <p className="font-primary" style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--amber)', letterSpacing: '-0.03em', lineHeight: 1 }}>{periodCouverts}</p>
+          </div>
         </div>
 
         {/* Graphique */}
