@@ -1,7 +1,7 @@
 "use client"
 
 import { use, useEffect, useState } from 'react'
-import { Sun, Moon, Timer } from 'lucide-react'
+import { Sun, Moon, Timer, CalendarOff } from 'lucide-react'
 import { createClient } from '../../../../../lib/supabase/client'
 
 const supabase = createClient()
@@ -34,6 +34,26 @@ const INTERVALS = [
   { value: 90, label: '1 h 30' },
   { value: 120, label: '2 heures' },
 ]
+
+// ── Génération des créneaux ────────────────────────────────────────
+const pad = (n: number) => String(n).padStart(2, '0')
+const toMin = (t: string) => { const [h, m] = t.split(':').map(Number); return h * 60 + m }
+const fromMin = (x: number) => `${pad(Math.floor(x / 60))}:${pad(x % 60)}`
+
+// Slots "HH:MM" d'un service, de debut à fin inclus, pas = interval.
+function genSlots(service: ServiceSchedule, interval: number): string[] {
+  if (!service.active || !service.debut || !service.fin) return []
+  const end = toMin(service.fin)
+  const out: string[] = []
+  for (let t = toMin(service.debut); t <= end; t += interval) out.push(fromMin(t))
+  return out
+}
+
+function toISO(d: Date) { return d.toISOString().split('T')[0] }
+function fmtDayLabel(iso: string) {
+  const d = new Date(`${iso}T00:00:00`)
+  return d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })
+}
 
 // ── Styles partagés ────────────────────────────────────────────────
 const inputStyle: React.CSSProperties = {
@@ -202,6 +222,194 @@ function ServiceCard({ title, Icon, service, onChange }: ServiceCardProps) {
   )
 }
 
+// ── Composant SlotOverrideCard ─────────────────────────────────────
+// Désactivation ponctuelle de créneaux pour une date précise.
+type SlotOverrideCardProps = {
+  restaurantId: string
+  schedule: Schedule
+}
+
+function SlotOverrideCard({ restaurantId, schedule }: SlotOverrideCardProps) {
+  const [date, setDate] = useState(toISO(new Date()))
+  const [disabled, setDisabled] = useState<string[]>([])
+  const [covers, setCovers] = useState<Record<string, number>>({})
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  // Charge l'override + le remplissage (couverts déjà réservés) de la date.
+  useEffect(() => {
+    let cancelled = false
+    setLoading(true)
+    Promise.all([
+      supabase
+        .from('reservation_slot_overrides')
+        .select('disabled_slots')
+        .eq('restaurant_id', restaurantId)
+        .eq('date', date)
+        .maybeSingle(),
+      supabase
+        .from('reservations')
+        .select('time_slot, covers, status')
+        .eq('restaurant_id', restaurantId)
+        .eq('date', date)
+        .in('status', ['pending', 'accepted', 'arrived']),
+    ]).then(([{ data: ov }, { data: resas }]) => {
+      if (cancelled) return
+      setDisabled((ov?.disabled_slots as string[]) ?? [])
+      const counts: Record<string, number> = {}
+      for (const r of resas ?? []) {
+        const slot = (r.time_slot as string)?.slice(0, 5)
+        counts[slot] = (counts[slot] ?? 0) + (r.covers ?? 0)
+      }
+      setCovers(counts)
+      setLoading(false)
+    })
+    return () => { cancelled = true }
+  }, [restaurantId, date])
+
+  const toggle = async (slot: string) => {
+    const next = disabled.includes(slot)
+      ? disabled.filter(s => s !== slot)
+      : [...disabled, slot]
+    setDisabled(next)
+    setSaving(true)
+    setError(null)
+    const { error: err } = await supabase
+      .from('reservation_slot_overrides')
+      .upsert(
+        {
+          restaurant_id: restaurantId,
+          date,
+          disabled_slots: next,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: 'restaurant_id,date' }
+      )
+    if (err) {
+      console.error('[slot-override] upsert failed:', err)
+      setError(err.message)
+      setDisabled(disabled) // rollback l'optimistic update
+    }
+    setSaving(false)
+  }
+
+  const services: { key: 'midi' | 'soir'; label: string; Icon: React.ElementType }[] = [
+    { key: 'midi', label: 'Midi', Icon: Sun },
+    { key: 'soir', label: 'Soir', Icon: Moon },
+  ]
+  const hasActiveService = schedule.midi.active || schedule.soir.active
+
+  return (
+    <div
+      style={{
+        backgroundColor: 'var(--surface)',
+        border: '1px solid var(--border)',
+        borderRadius: 12,
+        padding: '14px 18px 18px',
+        marginBottom: 24,
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 6 }}>
+        <CalendarOff size={16} strokeWidth={1.8} style={{ color: 'var(--pine)', flexShrink: 0 }} />
+        <span className="font-secondary" style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--ink)' }}>
+          Désactiver des créneaux (ponctuel)
+        </span>
+      </div>
+      <p className="font-secondary" style={{ fontSize: '0.78rem', color: 'var(--muted)', marginBottom: 14, lineHeight: 1.5 }}>
+        Fermez un créneau pour une date précise — ex. le service de 19 h est complet.
+        Les autres jours ne sont pas affectés. Enregistrement automatique.
+      </p>
+
+      {/* Date */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
+        <input
+          type="date"
+          value={date}
+          min={toISO(new Date())}
+          onChange={e => setDate(e.target.value)}
+          className="font-secondary"
+          style={{ ...inputStyle, width: 'auto', cursor: 'pointer' }}
+        />
+        <span className="font-secondary" style={{ fontSize: '0.8rem', color: 'var(--muted)', textTransform: 'capitalize' }}>
+          {fmtDayLabel(date)}
+        </span>
+        {saving && (
+          <span className="font-secondary" style={{ fontSize: '0.72rem', color: 'var(--muted)' }}>Enregistrement…</span>
+        )}
+      </div>
+
+      {error && (
+        <p className="font-secondary" style={{ fontSize: '0.78rem', color: 'var(--status-err-text)', backgroundColor: 'var(--status-err-bg)', borderRadius: 8, padding: '8px 11px', marginBottom: 14 }}>
+          Échec de l&apos;enregistrement : {error}
+        </p>
+      )}
+
+      {!hasActiveService ? (
+        <p className="font-secondary" style={{ fontSize: '0.8rem', color: 'var(--muted)' }}>
+          Aucun service actif. Activez le midi ou le soir ci-dessus.
+        </p>
+      ) : loading ? (
+        <p className="font-secondary" style={{ fontSize: '0.8rem', color: 'var(--muted)' }}>Chargement…</p>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          {services.map(({ key, label, Icon }) => {
+            const slots = genSlots(schedule[key], schedule.interval)
+            if (slots.length === 0) return null
+            return (
+              <div key={key}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 9 }}>
+                  <Icon size={13} strokeWidth={1.8} style={{ color: 'var(--muted)' }} />
+                  <span className="font-secondary" style={{ fontSize: '0.72rem', fontWeight: 600, color: 'var(--muted)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+                    {label}
+                  </span>
+                </div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                  {slots.map(slot => {
+                    const off = disabled.includes(slot)
+                    const nb = covers[slot] ?? 0
+                    return (
+                      <button
+                        key={slot}
+                        onClick={() => toggle(slot)}
+                        aria-pressed={off}
+                        title={off ? 'Réactiver ce créneau' : 'Désactiver ce créneau'}
+                        className="font-secondary"
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 5,
+                          border: `1.5px solid ${off ? 'var(--status-err-text)' : 'var(--border)'}`,
+                          backgroundColor: off ? 'var(--status-err-bg)' : 'var(--surface)',
+                          color: off ? 'var(--status-err-text)' : 'var(--ink)',
+                          borderRadius: 8,
+                          padding: '6px 10px',
+                          fontSize: '0.8rem',
+                          fontWeight: 500,
+                          cursor: 'pointer',
+                          textDecoration: off ? 'line-through' : 'none',
+                          transition: 'all 0.15s',
+                        }}
+                      >
+                        {slot}
+                        {nb > 0 && (
+                          <span style={{ fontSize: '0.68rem', opacity: 0.7, textDecoration: 'none' }}>
+                            · {nb} couv.
+                          </span>
+                        )}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ── Page principale ────────────────────────────────────────────────
 export default function CreneauxPage({ params }: { params: Promise<{ id: string }> }) {
   const { id: restaurantId } = use(params)
@@ -338,6 +546,9 @@ export default function CreneauxPage({ params }: { params: Promise<{ id: string 
           Durée minimum entre deux créneaux — s&apos;applique aux deux services.
         </p>
       </div>
+
+      {/* Désactivation ponctuelle de créneaux */}
+      <SlotOverrideCard restaurantId={restaurantId} schedule={schedule} />
 
       {/* Feedback */}
       {message && (
