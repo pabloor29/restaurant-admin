@@ -62,12 +62,14 @@ export async function PATCH(
   const { phone, address, email, google_review_url, review_email_auto } = body
   const admin = getAdminClient()
 
-  const update: Record<string, string | boolean | null> = {}
+  const update: Record<string, string | boolean | number | null> = {}
   if ('phone' in body) update.phone = phone || null
   if ('address' in body) update.address = address || null
   if ('email' in body) update.email = email || null
   if ('google_review_url' in body) update.google_review_url = google_review_url || null
   if ('review_email_auto' in body) update.review_email_auto = !!review_email_auto
+  if ('table_turn_midi' in body) update.table_turn_midi = Math.max(15, Number(body.table_turn_midi) || 120)
+  if ('table_turn_soir' in body) update.table_turn_soir = Math.max(15, Number(body.table_turn_soir) || 120)
 
   const { error } = await admin
     .from('restaurants')

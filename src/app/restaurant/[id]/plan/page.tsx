@@ -3,7 +3,7 @@
 import { use, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   Plus, Trash2, Users, ChevronLeft, ChevronRight, Link2, Unlink,
-  PencilRuler, Eye, Circle, Square, RectangleHorizontal, Check, X, Sun, Moon,
+  PencilRuler, Eye, Circle, Square, RectangleHorizontal, Check, X, Sun, Moon, Timer, Power, RotateCcw,
 } from 'lucide-react'
 import { createClient } from '../../../../../lib/supabase/client'
 
@@ -13,7 +13,7 @@ const supabase = createClient()
 type Mode = 'editor' | 'service'
 type Shape = 'round' | 'square' | 'rect'
 
-type Room = { id: string; name: string; position: number }
+type Room = { id: string; name: string; position: number; disabled?: boolean }
 
 type Table = {
   id: string
@@ -27,6 +27,7 @@ type Table = {
   height: number
   rotation: number
   merge_group: string | null
+  disabled?: boolean
 }
 
 type Reservation = {
@@ -40,7 +41,7 @@ type Reservation = {
 }
 
 // A logical table = one physical table OR a merged group acting as one.
-type Logical = { key: string; members: Table[]; seats: number; repId: string; memberIds: string[] }
+type Logical = { key: string; members: Table[]; seats: number; repId: string; memberIds: string[]; disabled: boolean }
 
 // Reservation statuses that actually occupy a table.
 const ACTIVE_STATUSES = ['pending', 'accepted', 'arrived']
@@ -55,9 +56,14 @@ function fmtDay(d: Date) {
   return d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })
 }
 function snap(v: number) { return Math.round(v / GRID) * GRID }
+function hmToMin(t: string) { const [h, m] = t.split(':').map(Number); return (h || 0) * 60 + (m || 0) }
+function fmtDur(m: number) { const h = Math.floor(m / 60), mm = m % 60; return mm ? `${h}h${String(mm).padStart(2, '0')}` : `${h}h` }
 
 function migrationHint(msg: string) {
   return `Fusion ponctuelle indisponible (${msg}). Lancez sql/2026-08-07-floor-temp-merges.sql dans Supabase (table floor_temp_merges + colonnes kind, time_slot).`
+}
+function turnHint(msg: string) {
+  return `Durée du repas non enregistrée (${msg}). Lancez sql/2026-08-07-table-turn.sql dans Supabase (colonnes table_turn_midi, table_turn_soir).`
 }
 
 function shapeDefaults(shape: Shape): { seats: number; width: number; height: number } {
@@ -107,7 +113,8 @@ function buildLogical(tables: Table[], tempMerges: TempMerge[] = [], splitIds: S
     const seats = members.reduce((s, m) => s + m.seats, 0)
     const memberIds = members.map(m => m.id)
     const repId = [...memberIds].sort()[0]
-    return { key: repId, members, seats, repId, memberIds }
+    const disabled = members.some(m => m.disabled)
+    return { key: repId, members, seats, repId, memberIds, disabled }
   })
 }
 
@@ -144,39 +151,42 @@ function layoutRow(members: Table[], gap: number): Map<string, { x: number; y: n
  * Auto-suggest a table for every unassigned reservation of the day.
  * Manual assignments (reservation.table_id != null) are fixed. Suggestions are
  * computed in-memory only — never persisted until the restaurateur drags.
- * Greedy: largest parties first onto the smallest table that still fits and is
- * free for that time slot.
+ * Greedy: largest parties first onto the smallest table that is free for their
+ * time window. A table is busy for `turnMin` minutes after each seating, so two
+ * reservations conflict only when their start times are < turnMin apart.
  * Returns Map<reservationId, logicalKey>.
  */
-function autoSuggest(reservations: Reservation[], logicals: Logical[]): Map<string, string> {
+function autoSuggest(reservations: Reservation[], logicals: Logical[], turnMin: number): Map<string, string> {
   const byId = new Map(logicals.map(l => [l.repId, l]))
   const memberToKey = new Map<string, string>()
   for (const l of logicals) for (const id of l.memberIds) memberToKey.set(id, l.key)
 
-  // occupancy[logicalKey][timeSlot] = covers already seated
-  const occ = new Map<string, Map<string, number>>()
-  const bump = (key: string, slot: string, n: number) => {
-    let m = occ.get(key); if (!m) { m = new Map(); occ.set(key, m) }
-    m.set(slot, (m.get(slot) ?? 0) + n)
+  // occupancy[logicalKey] = list of seatings { start(min), covers }
+  const occ = new Map<string, { start: number; covers: number }[]>()
+  const add = (key: string, start: number, covers: number) => {
+    const a = occ.get(key); if (a) a.push({ start, covers }); else occ.set(key, [{ start, covers }])
   }
-  const seated = (key: string, slot: string) => occ.get(key)?.get(slot) ?? 0
+  // covers already seated in the same time window as `start`
+  const seatedWithin = (key: string, start: number) =>
+    (occ.get(key) ?? []).reduce((s, e) => Math.abs(e.start - start) < turnMin ? s + e.covers : s, 0)
 
   // Seed occupancy from manual assignments.
   for (const r of reservations) {
     if (!r.table_id) continue
     const key = memberToKey.get(r.table_id) ?? byId.get(r.table_id)?.key
-    if (key) bump(key, r.time_slot, r.covers)
+    if (key) add(key, hmToMin(r.time_slot), r.covers)
   }
 
   const suggestions = new Map<string, string>()
-  const sorted = [...logicals].sort((a, b) => a.seats - b.seats)
+  const sorted = logicals.filter(l => !l.disabled).sort((a, b) => a.seats - b.seats)
   const unassigned = reservations
     .filter(r => !r.table_id)
     .sort((a, b) => b.covers - a.covers)
 
   for (const r of unassigned) {
-    const fit = sorted.find(l => seated(l.key, r.time_slot) + r.covers <= l.seats)
-    if (fit) { suggestions.set(r.id, fit.key); bump(fit.key, r.time_slot, r.covers) }
+    const start = hmToMin(r.time_slot)
+    const fit = sorted.find(l => seatedWithin(l.key, start) + r.covers <= l.seats)
+    if (fit) { suggestions.set(r.id, fit.key); add(fit.key, start, r.covers) }
   }
   return suggestions
 }
@@ -235,10 +245,12 @@ export default function PlanPage({ params }: { params: Promise<{ id: string }> }
   const [schedule, setSchedule] = useState({
     soir: { debut: '19:00' },  // midi/soir cutoff
   })
+  const [turns, setTurns] = useState({ midi: 120, soir: 120 })   // table turn per service (min)
   const [reservations, setReservations] = useState<Reservation[]>([])
   const [tempMerges, setTempMerges] = useState<TempMerge[]>([])   // punctual merges for date+service
   const [tempError, setTempError] = useState<string | null>(null) // surfaced DB error (e.g. missing migration)
   const [openTable, setOpenTable] = useState<string | null>(null) // logical key detail panel
+  const [addForm, setAddForm] = useState({ open: false, name: '', time: '', covers: '2', phone: '', saving: false, error: '' })
 
   // Drag + pan
   const [drag, setDrag] = useState<Drag>(null)
@@ -271,16 +283,43 @@ export default function PlanPage({ params }: { params: Promise<{ id: string }> }
       .then(({ data }) => { if (data?.soir_debut) setSchedule({ soir: { debut: data.soir_debut } }) })
   }, [restaurantId])
 
-  // ── Load reservations for the selected day (service mode) ──
+  // Table turn duration (how long a party occupies a table), per service.
   useEffect(() => {
-    if (mode !== 'service') return
-    supabase.from('reservations')
+    supabase.from('restaurants').select('table_turn_midi, table_turn_soir').eq('id', restaurantId).single()
+      .then(({ data, error }) => {
+        if (error) { setTempError(turnHint(error.message)); return }
+        if (data) setTurns({ midi: data.table_turn_midi ?? 120, soir: data.table_turn_soir ?? 120 })
+      })
+  }, [restaurantId])
+  const setTurn = async (m: number) => {
+    setTurns(prev => ({ ...prev, [service]: m }))
+    const col = service === 'soir' ? 'table_turn_soir' : 'table_turn_midi'
+    // Goes through the service-role API route: restaurants is not client-writable (RLS).
+    const res = await fetch(`/api/restaurant/${restaurantId}/infos`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ [col]: m }),
+    })
+    if (!res.ok) {
+      const b = await res.json().catch(() => ({}))
+      setTempError(turnHint(b.error ?? `HTTP ${res.status}`))
+    } else setTempError(null)
+  }
+
+  // ── Load reservations for the selected day (service mode) ──
+  const loadReservations = useCallback(async () => {
+    const { data } = await supabase.from('reservations')
       .select('id, date, time_slot, covers, name, status, table_id')
       .eq('restaurant_id', restaurantId)
       .eq('date', toISO(date))
       .in('status', ACTIVE_STATUSES)
-      .then(({ data }) => setReservations((data ?? []) as Reservation[]))
-  }, [mode, date, restaurantId])
+    setReservations((data ?? []) as Reservation[])
+  }, [restaurantId, date])
+
+  useEffect(() => {
+    if (mode !== 'service') return
+    loadReservations()
+  }, [mode, loadReservations])
 
   // Punctual merges for the active date+service, all seating slots (service view only).
   const loadTempMerges = useCallback(async () => {
@@ -312,14 +351,20 @@ export default function PlanPage({ params }: { params: Promise<{ id: string }> }
     () => reservations.filter(r => (r.time_slot >= schedule.soir.debut) === (service === 'soir')),
     [reservations, schedule.soir.debut, service],
   )
+  const turnMin = service === 'soir' ? turns.soir : turns.midi   // active service's turn
 
   // Logical tables for the whole service (punctual merges/splits apply to date+service).
   const logicals = useMemo(() => {
-    if (mode !== 'service') return buildLogical(roomTables)
-    const mergeRows = tempMerges.filter(m => m.kind === 'merge')
-    const splitIds = new Set(tempMerges.filter(m => m.kind === 'split').flatMap(m => m.table_ids))
-    return buildLogical(roomTables, mergeRows, splitIds)
-  }, [roomTables, mode, tempMerges])
+    const base = mode !== 'service'
+      ? buildLogical(roomTables)
+      : buildLogical(
+          roomTables,
+          tempMerges.filter(m => m.kind === 'merge'),
+          new Set(tempMerges.filter(m => m.kind === 'split').flatMap(m => m.table_ids)),
+        )
+    const roomDisabled = rooms.find(r => r.id === activeRoom)?.disabled ?? false
+    return roomDisabled ? base.map(l => ({ ...l, disabled: true })) : base
+  }, [roomTables, mode, tempMerges, rooms, activeRoom])
 
   // Render-only geometry for the service view: punctual merges snap tables together,
   // punctual splits space them apart — WITHOUT persisting to floor_tables, so the
@@ -339,8 +384,8 @@ export default function PlanPage({ params }: { params: Promise<{ id: string }> }
   }, [roomTables, mode, logicals, tempMerges])
 
   const suggestions = useMemo(
-    () => mode === 'service' ? autoSuggest(serviceResas, logicals) : new Map<string, string>(),
-    [mode, serviceResas, logicals],
+    () => mode === 'service' ? autoSuggest(serviceResas, logicals, turnMin) : new Map<string, string>(),
+    [mode, serviceResas, logicals, turnMin],
   )
 
   // reservations grouped per logical key (manual + suggested), whole service
@@ -358,17 +403,28 @@ export default function PlanPage({ params }: { params: Promise<{ id: string }> }
     return map
   }, [serviceResas, logicals, suggestions])
 
-  // Flat list of every service reservation with its (placed/suggested) table label.
+  // Flat list of EVERY reservation of the day (both services) with its table label
+  // + a midi/soir tag, so navigating days always surfaces that day's bookings.
   const serviceList = useMemo(() => {
-    const byResa = new Map<string, { label: string; suggested: boolean; key: string }>()
-    for (const l of logicals) {
-      const label = l.members.map(m => m.label || '—').join('+')
-      for (const { r, suggested } of resasByKey.get(l.key) ?? []) byResa.set(r.id, { label, suggested, key: l.key })
-    }
-    return [...serviceResas]
+    const tById = new Map(tables.map(t => [t.id, t]))
+    const memberToKey = new Map<string, string>()
+    for (const l of logicals) for (const id of l.memberIds) memberToKey.set(id, l.key)
+    const labelOfKey = (key: string) => logicals.find(l => l.key === key)?.members.map(m => m.label || '—').join('+') ?? null
+    return [...reservations]
       .sort((a, b) => a.time_slot.localeCompare(b.time_slot) || a.name.localeCompare(b.name))
-      .map(r => ({ r, ...(byResa.get(r.id) ?? { label: null as string | null, suggested: false, key: null as string | null }) }))
-  }, [serviceResas, logicals, resasByKey])
+      .map(r => {
+        const svc: 'midi' | 'soir' = r.time_slot >= schedule.soir.debut ? 'soir' : 'midi'
+        let label: string | null = null, suggested = false, key: string | null = null
+        if (r.table_id) {
+          key = memberToKey.get(r.table_id) ?? null
+          label = key ? labelOfKey(key) : (tById.get(r.table_id)?.label ?? null)
+        } else if (svc === service) {
+          const k = suggestions.get(r.id)
+          if (k) { key = k; label = labelOfKey(k); suggested = true }
+        }
+        return { r, label, suggested, key, svc }
+      })
+  }, [reservations, tables, logicals, suggestions, service, schedule.soir.debut])
 
   // ── Room ops ──
   const addRoom = async () => {
@@ -384,6 +440,11 @@ export default function PlanPage({ params }: { params: Promise<{ id: string }> }
     if (!name || name === room.name) return
     await supabase.from('floor_rooms').update({ name }).eq('id', room.id)
     setRooms(prev => prev.map(r => r.id === room.id ? { ...r, name } : r))
+  }
+  const toggleRoomDisabled = async (room: Room) => {
+    const disabled = !room.disabled
+    setRooms(prev => prev.map(r => r.id === room.id ? { ...r, disabled } : r))
+    await supabase.from('floor_rooms').update({ disabled }).eq('id', room.id)
   }
   const deleteRoom = async (room: Room) => {
     if (!confirm(`Supprimer la salle « ${room.name} » et ses tables ?`)) return
@@ -461,6 +522,15 @@ export default function PlanPage({ params }: { params: Promise<{ id: string }> }
   // Geometry is render-only (see the `positions` memo) — floor_tables is untouched.
   const mergeTemp = async () => {
     if (fusionSel.size < 2) return
+    // Drop any punctual split covering these tables, so a permanent merge that was
+    // punctually separated can be merged again (splits otherwise win over merges).
+    const toDelete = tempMerges
+      .filter(m => m.kind === 'split' && m.table_ids.some(id => fusionSel.has(id)))
+      .map(m => m.id)
+    if (toDelete.length) {
+      const { error } = await supabase.from('floor_temp_merges').delete().in('id', toDelete)
+      if (error) { setTempError(migrationHint(error.message)); return }
+    }
     const { error } = await supabase.from('floor_temp_merges').insert({
       restaurant_id: restaurantId, date: toISO(date), service, kind: 'merge', table_ids: [...fusionSel],
     })
@@ -493,10 +563,38 @@ export default function PlanPage({ params }: { params: Promise<{ id: string }> }
   const mergeSelected = () => (mode === 'editor' ? mergePermanent() : mergeTemp())
   const unmergeSelected = () => (mode === 'editor' ? unmergePermanent() : separateTemp())
 
+  // Reset all punctual changes for this date+service → back to the editor's base plan.
+  const resetTemp = async () => {
+    if (!tempMerges.length) return
+    if (!confirm('Réinitialiser les regroupements ponctuels de ce service et revenir au plan par défaut ?')) return
+    const { error } = await supabase.from('floor_temp_merges').delete()
+      .eq('restaurant_id', restaurantId).eq('date', toISO(date)).eq('service', service)
+    if (error) { setTempError(migrationHint(error.message)); return }
+    setFusion(false); setFusionSel(new Set())
+    await loadTempMerges()
+  }
+
   // ── Reservation assignment ──
   const assignResa = async (resaId: string, repId: string | null) => {
     setReservations(prev => prev.map(r => r.id === resaId ? { ...r, table_id: repId } : r))
     await supabase.from('reservations').update({ table_id: repId }).eq('id', resaId)
+  }
+
+  // Add a reservation straight from the plan. If a table detail is open, assign it there.
+  const addReservation = async () => {
+    if (!addForm.name.trim() || !addForm.time) { setAddForm(f => ({ ...f, error: 'Nom et heure requis.' })); return }
+    setAddForm(f => ({ ...f, saving: true, error: '' }))
+    const covers = Math.max(1, Number(addForm.covers) || 1)
+    const table_id = openTable ? (logicals.find(l => l.key === openTable)?.repId ?? null) : null
+    const { error } = await supabase.from('reservations').insert({
+      restaurant_id: restaurantId, date: toISO(date), time_slot: addForm.time,
+      covers, name: addForm.name.trim(), phone: addForm.phone.trim() || null,
+      status: 'accepted', table_id,
+    })
+    if (error) { setAddForm(f => ({ ...f, saving: false, error: error.message })); return }
+    await supabase.from('reservation_history').insert({ restaurant_id: restaurantId, date: toISO(date), covers })
+    setAddForm({ open: false, name: '', time: '', covers: '2', phone: '', saving: false, error: '' })
+    await loadReservations()
   }
 
   // ── Pointer drag (tables in editor, reservations in service) ──
@@ -560,8 +658,8 @@ export default function PlanPage({ params }: { params: Promise<{ id: string }> }
               e.clientY >= rect.top && e.clientY <= rect.bottom) { hitKey = key; break }
         }
         if (hitKey) {
-          const rep = logicals.find(l => l.key === hitKey)?.repId ?? null
-          assignResa(drag.resaId, rep)
+          const hit = logicals.find(l => l.key === hitKey)
+          if (hit && !hit.disabled) assignResa(drag.resaId, hit.repId)
         }
       }
       setDrag(null)
@@ -620,26 +718,36 @@ export default function PlanPage({ params }: { params: Promise<{ id: string }> }
       {/* Room tabs */}
       <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}>
         {rooms.map(room => (
-          <div key={room.id} style={{ display: 'flex' }}>
+          <div key={room.id} style={{ display: 'flex', opacity: room.disabled ? 0.55 : 1 }}>
             <button
               onClick={() => { setActiveRoom(room.id); setSelected(null); setOpenTable(null) }}
               onDoubleClick={() => mode === 'editor' && renameRoom(room)}
               style={{
                 ...btn(activeRoom === room.id),
                 borderRadius: mode === 'editor' ? '9px 0 0 9px' : 9,
+                textDecoration: room.disabled ? 'line-through' : undefined,
               }}
-              title={mode === 'editor' ? 'Double-clic pour renommer' : undefined}
+              title={mode === 'editor' ? 'Double-clic pour renommer' : (room.disabled ? 'Salle désactivée' : undefined)}
             >
-              {room.name}
+              {room.name}{room.disabled ? ' · off' : ''}
             </button>
             {mode === 'editor' && (
-              <button
-                onClick={() => deleteRoom(room)}
-                style={{ ...iconBtn, width: 30, height: 'auto', borderRadius: '0 9px 9px 0', borderLeft: 'none' }}
-                title="Supprimer la salle"
-              >
-                <Trash2 size={13} strokeWidth={1.9} />
-              </button>
+              <>
+                <button
+                  onClick={() => toggleRoomDisabled(room)}
+                  style={{ ...iconBtn, width: 30, height: 'auto', borderRadius: 0, marginLeft: -1.5, color: room.disabled ? 'var(--status-err-text)' : 'var(--slate)' }}
+                  title={room.disabled ? 'Réactiver la salle' : 'Désactiver la salle'}
+                >
+                  <Power size={13} strokeWidth={1.9} />
+                </button>
+                <button
+                  onClick={() => deleteRoom(room)}
+                  style={{ ...iconBtn, width: 30, height: 'auto', borderRadius: '0 9px 9px 0', marginLeft: -1.5 }}
+                  title="Supprimer la salle"
+                >
+                  <Trash2 size={13} strokeWidth={1.9} />
+                </button>
+              </>
             )}
           </div>
         ))}
@@ -696,7 +804,7 @@ export default function PlanPage({ params }: { params: Promise<{ id: string }> }
                   <button onClick={() => { setService('midi'); setOpenTable(null) }} style={{ ...btn(service === 'midi'), borderRadius: '9px 0 0 9px' }}>
                     <Sun size={15} strokeWidth={1.9} /> Midi
                   </button>
-                  <button onClick={() => { setService('soir'); setOpenTable(null) }} style={{ ...btn(service === 'soir'), borderRadius: '0 9px 9px 0', borderLeft: 'none' }}>
+                  <button onClick={() => { setService('soir'); setOpenTable(null) }} style={{ ...btn(service === 'soir'), borderRadius: '0 9px 9px 0', marginLeft: -1.5 }}>
                     <Moon size={15} strokeWidth={1.9} /> Soir
                   </button>
                 </div>
@@ -708,12 +816,30 @@ export default function PlanPage({ params }: { params: Promise<{ id: string }> }
                   <button onClick={() => setDate(d => addDays(d, 1))} style={iconBtn}><ChevronRight size={16} /></button>
                   <button onClick={() => setDate(new Date())} style={btn(false)}>Aujourd’hui</button>
                 </div>
+                <label className="font-secondary" style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.78rem', color: 'var(--slate)' }} title={`Durée d'occupation d'une table (${service})`}>
+                  <Timer size={14} strokeWidth={1.9} /> Durée {service}
+                  <select
+                    value={turnMin}
+                    onChange={e => setTurn(Number(e.target.value))}
+                    style={{ border: '1.5px solid var(--border)', borderRadius: 8, padding: '6px 8px', fontSize: '0.78rem', color: 'var(--ink)', background: 'var(--surface)', fontFamily: 'var(--font-secondary)', cursor: 'pointer' }}
+                  >
+                    {[60, 90, 120, 150, 180, 240].map(m => <option key={m} value={m}>{fmtDur(m)}</option>)}
+                  </select>
+                </label>
                 <button
                   onClick={() => { setFusion(f => !f); setFusionSel(new Set()); setOpenTable(null) }}
                   style={btn(fusion)}
                   title="Regrouper des tables"
                 >
                   <Link2 size={15} strokeWidth={1.9} /> Fusionner
+                </button>
+                <button
+                  onClick={resetTemp}
+                  disabled={!tempMerges.length}
+                  style={{ ...btn(false), opacity: tempMerges.length ? 1 : 0.45 }}
+                  title="Réinitialiser les regroupements ponctuels (revenir au plan par défaut)"
+                >
+                  <RotateCcw size={15} strokeWidth={1.9} /> Réinitialiser
                 </button>
               </div>
             )}
@@ -744,6 +870,7 @@ export default function PlanPage({ params }: { params: Promise<{ id: string }> }
                     fusionSel={fusionSel}
                     isSelected={!!selectedTable && l.memberIds.includes(selectedTable.id)}
                     resas={resasByKey.get(l.key) ?? []}
+                    turnMin={turnMin}
                     onTablePointerDown={startTableDrag}
                     onFusionToggle={toggleFusionSel}
                     onOpenDetail={() => setOpenTable(l.key)}
@@ -807,6 +934,37 @@ export default function PlanPage({ params }: { params: Promise<{ id: string }> }
             )}
 
             {mode === 'service' && (
+              <div style={card}>
+                {!addForm.open ? (
+                  <button onClick={() => setAddForm(f => ({ ...f, open: true }))} style={{ ...btn(true), width: '100%', justifyContent: 'center' }}>
+                    <Plus size={15} strokeWidth={2} /> Ajouter une réservation
+                  </button>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span className="font-primary" style={{ fontWeight: 700, color: 'var(--ink)' }}>Nouvelle réservation</span>
+                      <button onClick={() => setAddForm(f => ({ ...f, open: false, error: '' }))} style={{ ...iconBtn, width: 26, height: 26 }}><X size={13} /></button>
+                    </div>
+                    <div className="font-secondary" style={{ fontSize: '0.72rem', color: openTable ? 'var(--pine)' : 'var(--muted)' }}>
+                      {toISO(date)} · {service}
+                      {openTable && ` · table ${logicals.find(l => l.key === openTable)?.members.map(m => m.label).join('+')}`}
+                    </div>
+                    <input placeholder="Nom *" style={input} value={addForm.name} onChange={e => setAddForm(f => ({ ...f, name: e.target.value }))} />
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <input type="time" style={input} value={addForm.time} onChange={e => setAddForm(f => ({ ...f, time: e.target.value }))} />
+                      <input type="number" min={1} max={50} style={{ ...input, maxWidth: 92 }} value={addForm.covers} onChange={e => setAddForm(f => ({ ...f, covers: e.target.value }))} />
+                    </div>
+                    <input placeholder="Téléphone (optionnel)" style={input} value={addForm.phone} onChange={e => setAddForm(f => ({ ...f, phone: e.target.value }))} />
+                    {addForm.error && <div className="font-secondary" style={{ fontSize: '0.75rem', color: 'var(--status-err-text)' }}>{addForm.error}</div>}
+                    <button onClick={addReservation} disabled={addForm.saving} style={{ ...btn(true), width: '100%', justifyContent: 'center', opacity: addForm.saving ? 0.6 : 1 }}>
+                      {addForm.saving ? 'Ajout…' : 'Ajouter'}
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {mode === 'service' && (
               <ServicePanel
                 list={serviceList}
                 unplaced={unplaced}
@@ -839,7 +997,7 @@ export default function PlanPage({ params }: { params: Promise<{ id: string }> }
 
 // ── LogicalTable (rendered on the canvas) ────────────────────────────
 function LogicalTable({
-  logical, positions, mode, fusion, fusionSel, isSelected, resas,
+  logical, positions, mode, fusion, fusionSel, isSelected, resas, turnMin,
   onTablePointerDown, onFusionToggle, onOpenDetail,
 }: {
   logical: Logical
@@ -849,15 +1007,18 @@ function LogicalTable({
   fusionSel: Set<string>
   isSelected: boolean
   resas: { r: Reservation; suggested: boolean }[]
+  turnMin: number
   onTablePointerDown: (e: React.PointerEvent, t: Table) => void
   onFusionToggle: (id: string) => void
   onOpenDetail: () => void
 }) {
   const occupied = resas.length > 0
-  // Over-capacity is per seating slot: two parties at different times don't conflict.
-  const perSlot = new Map<string, number>()
-  for (const { r } of resas) perSlot.set(r.time_slot, (perSlot.get(r.time_slot) ?? 0) + r.covers)
-  const over = [...perSlot.values()].some(v => v > logical.seats)
+  // Over-capacity within a turn window: parties seated > turnMin apart don't conflict.
+  const over = resas.some(({ r }) => {
+    const start = hmToMin(r.time_slot)
+    const sum = resas.reduce((s, x) => Math.abs(hmToMin(x.r.time_slot) - start) < turnMin ? s + x.r.covers : s, 0)
+    return sum > logical.seats
+  })
   const isMerged = logical.members.length > 1
   const posOf = (t: Table) => positions.get(t.id) ?? { x: t.x, y: t.y }
 
@@ -866,6 +1027,7 @@ function LogicalTable({
       {logical.members.map(t => {
         const inFusionSel = fusionSel.has(t.id)
         const isRep = t.id === logical.repId
+        const disabled = logical.disabled
         const p = posOf(t)
         const radius = t.shape === 'round' ? '50%' : 12
         const highlight =
@@ -885,14 +1047,17 @@ function LogicalTable({
             style={{
               position: 'absolute', left: p.x, top: p.y, width: t.width, height: t.height,
               borderRadius: radius,
-              border: `2px solid ${highlight}`,
-              backgroundColor: inFusionSel
-                ? 'var(--amber-light)'
-                : mode === 'service'
-                  ? (over ? 'var(--status-err-bg)' : occupied ? 'var(--status-ok-bg)' : 'var(--surface)')
-                  : 'var(--surface)',
+              border: disabled ? '2px dashed var(--muted)' : `2px solid ${highlight}`,
+              backgroundColor: disabled
+                ? 'var(--surface-alt)'
+                : inFusionSel
+                  ? 'var(--amber-light)'
+                  : mode === 'service'
+                    ? (over ? 'var(--status-err-bg)' : occupied ? 'var(--status-ok-bg)' : 'var(--surface)')
+                    : 'var(--surface)',
+              opacity: disabled ? 0.5 : 1,
               boxShadow: isSelected ? '0 0 0 3px var(--pine-light)' : '0 1px 3px rgba(0,0,0,0.06)',
-              cursor: mode === 'editor' ? (fusion ? 'pointer' : 'grab') : 'pointer',
+              cursor: mode === 'editor' ? (fusion ? 'pointer' : 'grab') : (disabled ? 'not-allowed' : 'pointer'),
               display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
               gap: 1, touchAction: 'none',
             }}
@@ -978,6 +1143,13 @@ function TableEditor({
         ))}
       </div>
 
+      <button
+        onClick={() => onPatch({ disabled: !table.disabled })}
+        style={{ ...btn(false), width: '100%', justifyContent: 'center', marginBottom: 8, color: table.disabled ? 'var(--status-ok-text)' : 'var(--slate)' }}
+      >
+        <Power size={14} strokeWidth={1.9} /> {table.disabled ? 'Réactiver la table' : 'Désactiver la table'}
+      </button>
+
       <button onClick={onDelete} style={{ ...btn(false), width: '100%', justifyContent: 'center', color: 'var(--status-err-text)', borderColor: 'var(--status-err-bg)' }}>
         <Trash2 size={14} strokeWidth={1.9} /> Supprimer la table
       </button>
@@ -986,7 +1158,7 @@ function TableEditor({
 }
 
 // ── ServicePanel side panel ──────────────────────────────────────────
-type ServiceListItem = { r: Reservation; label: string | null; suggested: boolean; key: string | null }
+type ServiceListItem = { r: Reservation; label: string | null; suggested: boolean; key: string | null; svc: 'midi' | 'soir' }
 
 function ServicePanel({
   list, unplaced, onResaPointerDown, onOpenTable, openLogical, openResas, onUnassign, onCloseDetail,
@@ -1002,10 +1174,10 @@ function ServicePanel({
 }) {
   return (
     <>
-      {/* Full list of the service reservations: name · time · covers · table */}
+      {/* Full list of the day's reservations: name · time · covers · service · table */}
       <div style={card}>
         <div className="font-primary" style={{ fontWeight: 700, color: 'var(--ink)', marginBottom: 4 }}>
-          Réservations du service
+          Réservations du jour
         </div>
         <p className="font-secondary" style={{ fontSize: '0.75rem', color: 'var(--muted)', margin: '0 0 10px' }}>
           {list.length} réservation{list.length > 1 ? 's' : ''}
@@ -1014,7 +1186,7 @@ function ServicePanel({
           <p className="font-secondary" style={{ fontSize: '0.82rem', color: 'var(--muted)', margin: 0 }}>Aucune réservation.</p>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 5, maxHeight: 320, overflowY: 'auto' }}>
-            {list.map(({ r, label, suggested, key }) => (
+            {list.map(({ r, label, suggested, key, svc }) => (
               <div key={r.id}
                 onClick={() => { if (key) onOpenTable(key) }}
                 style={{
@@ -1024,7 +1196,9 @@ function ServicePanel({
                 }}>
                 <div style={{ minWidth: 0 }}>
                   <div className="font-secondary" style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.name}</div>
-                  <div className="font-secondary" style={{ fontSize: '0.72rem', color: 'var(--slate)' }}>{r.time_slot} · {r.covers}p</div>
+                  <div className="font-secondary" style={{ fontSize: '0.72rem', color: 'var(--slate)' }}>
+                    {svc === 'soir' ? '☾' : '☀'} {r.time_slot} · {r.covers}p
+                  </div>
                 </div>
                 <span className="font-secondary" style={{
                   flexShrink: 0, fontSize: '0.72rem', fontWeight: 700, borderRadius: 6, padding: '2px 7px',
