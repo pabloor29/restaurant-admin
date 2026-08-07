@@ -34,7 +34,7 @@ export default async function RestaurantLayout({
     isAdmin = !!profile?.is_admin
   }
 
-  const ALL_SECTION_KEYS = ['reservations', 'horaires', 'creneaux', 'fermetures', 'conges', 'formules', 'menus', 'evenements']
+  const ALL_SECTION_KEYS = ['reservations', 'plan_salle', 'horaires', 'creneaux', 'fermetures', 'conges', 'formules', 'menus', 'evenements']
   const initialEnabled: Record<string, boolean> = Object.fromEntries(ALL_SECTION_KEYS.map(k => [k, true]))
 
   const { data: sectionRows } = await supabase

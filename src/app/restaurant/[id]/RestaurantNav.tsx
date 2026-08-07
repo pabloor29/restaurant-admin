@@ -6,7 +6,7 @@ import { useState } from 'react'
 import { createClient } from '../../../../lib/supabase/client'
 import {
   CalendarDays, Clock, CalendarClock, Ban, CalendarX, LayoutList,
-  UtensilsCrossed, Sparkles, Settings2,
+  UtensilsCrossed, Sparkles, Settings2, LayoutGrid,
   LogOut, ShieldCheck, Menu as MenuIcon, X,
 } from 'lucide-react'
 
@@ -14,6 +14,7 @@ const supabase = createClient()
 
 const ALL_SECTIONS = [
   { path: '/reservations', label: 'Réservations', key: 'reservations', Icon: CalendarDays },
+  { path: '/plan',         label: 'Plan de salle', key: 'plan_salle',  Icon: LayoutGrid },
   { path: '/horaires',     label: 'Horaires',     key: 'horaires',     Icon: Clock },
   { path: '/creneaux',     label: 'Créneaux',     key: 'creneaux',     Icon: CalendarClock },
   { path: '/fermetures',   label: 'Fermetures',   key: 'fermetures',   Icon: Ban },
