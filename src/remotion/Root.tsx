@@ -3,6 +3,7 @@ import { ResaVSL, FPS, DURATION } from './ResaVSL'
 import { CarboTestimonial, CARBO_FPS, CARBO_DURATION } from './CarboTestimonial'
 import { ResaLinkedInPost, RESA_LI_FPS, RESA_LI_DURATION } from './ResaLinkedInPost'
 import { ResaAvisGoogle, AVIS_FPS, AVIS_DURATION } from './ResaAvisGoogle'
+import { ResaResultsJuillet, RESULTS_FPS, RESULTS_DURATION } from './ResaResultsJuillet'
 
 export const RemotionRoot = () => (
   <>
@@ -89,6 +90,26 @@ export const RemotionRoot = () => (
       fps={AVIS_FPS}
       width={1080}
       height={1920}
+    />
+
+    {/* ── RESA — Résultats juillet d'un restaurant (anonyme) ── */}
+    {/* 9:16 Vertical — Instagram Reels / Stories */}
+    <Composition
+      id="ResaResultsJuillet"
+      component={ResaResultsJuillet}
+      durationInFrames={RESULTS_DURATION}
+      fps={RESULTS_FPS}
+      width={1080}
+      height={1920}
+    />
+    {/* 1:1 Square — feed */}
+    <Composition
+      id="ResaResultsJuillet-Square"
+      component={ResaResultsJuillet}
+      durationInFrames={RESULTS_DURATION}
+      fps={RESULTS_FPS}
+      width={1080}
+      height={1080}
     />
   </>
 )

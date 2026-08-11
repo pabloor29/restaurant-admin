@@ -18,7 +18,9 @@
     "video:carbo:all": "npm run video:carbo && npm run video:carbo:square && npm run video:carbo:vertical",
     "video:li": "remotion render src/remotion/index.ts ResaLinkedInPost public/resa-linkedin-post.mp4",
     "video:li:vertical": "remotion render src/remotion/index.ts ResaLinkedInPost-Vertical public/resa-linkedin-post-vertical.mp4",
-    "video:avis": "remotion render src/remotion/index.ts ResaAvisGoogle public/resa-avis-google.mp4"
+    "video:avis": "remotion render src/remotion/index.ts ResaAvisGoogle public/resa-avis-google.mp4",
+    "video:results": "remotion render src/remotion/index.ts ResaResultsJuillet public/resa-results-juillet.mp4",
+    "video:results:square": "remotion render src/remotion/index.ts ResaResultsJuillet-Square public/resa-results-juillet-square.mp4"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.4",
