@@ -5,7 +5,7 @@ import { isPushSupported, registerServiceWorker, enablePush } from '../../../../
 
 type State = 'loading' | 'unsupported' | 'default' | 'denied' | 'subscribed' | 'error'
 
-export default function PushNotifications() {
+export default function PushNotifications({ restaurantId }: { restaurantId?: string }) {
   const [state, setState] = useState<State>('loading')
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState('')
@@ -28,7 +28,7 @@ export default function PushNotifications() {
   async function enable() {
     setBusy(true)
     setMsg('')
-    const res = await enablePush()
+    const res = await enablePush(restaurantId)
     if (res.ok) {
       setState('subscribed')
       setMsg('Notifications activées sur cet appareil.')

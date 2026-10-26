@@ -140,7 +140,7 @@ export default function AdminPage() {
     <div className="min-h-screen bg-secondary">
       <div className="max-w-2xl mx-auto px-6 py-10">
         {/* Header */}
-        <div className="flex justify-between items-center mb-10">
+        <div className="flex flex-wrap justify-between items-center gap-4 mb-10">
           <div>
             <h1 className="font-primary" style={{ fontSize: '2.4rem', fontWeight: 800, letterSpacing: '-0.03em', color: 'var(--ink)', lineHeight: 1 }}>
               RESA<span style={{ color: 'var(--amber)' }}>.</span>
@@ -149,7 +149,7 @@ export default function AdminPage() {
               ADMINISTRATION
             </p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2">
             <Link
               href="/admin/connexions"
               className="font-secondary"

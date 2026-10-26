@@ -254,7 +254,7 @@ export default function InfosPage({ params }: { params: Promise<{ id: string }> 
       </form>
 
       {/* Notifications push — nouvelles réservations */}
-      <PushNotifications />
+      <PushNotifications restaurantId={restaurantId} />
 
       {/* Demandes d'avis */}
       <div style={{ borderTop: '1px solid var(--border)', marginTop: 32, paddingTop: 28 }}>

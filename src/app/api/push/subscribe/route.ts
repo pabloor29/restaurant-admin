@@ -16,17 +16,21 @@ export async function POST(request: NextRequest) {
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('restaurant_id')
+    .select('restaurant_id, is_admin')
     .eq('id', user.id)
     .single()
 
-  if (!profile?.restaurant_id) {
-    return NextResponse.json({ error: 'Aucun restaurant associé' }, { status: 400 })
-  }
-
-  const { subscription, userAgent } = await request.json()
+  const { subscription, userAgent, restaurantId } = await request.json()
   if (!subscription?.endpoint || !subscription?.keys?.p256dh || !subscription?.keys?.auth) {
     return NextResponse.json({ error: 'Abonnement invalide' }, { status: 400 })
+  }
+
+  // The owner is tied to their own restaurant; an admin subscribes to whichever
+  // restaurant space they currently have open (passed from the client).
+  const targetRestaurantId =
+    profile?.restaurant_id ?? (profile?.is_admin ? restaurantId : null)
+  if (!targetRestaurantId) {
+    return NextResponse.json({ error: 'Aucun restaurant associé' }, { status: 400 })
   }
 
   const admin = getAdminClient()
@@ -34,7 +38,7 @@ export async function POST(request: NextRequest) {
     .from('push_subscriptions')
     .upsert(
       {
-        restaurant_id: profile.restaurant_id,
+        restaurant_id: targetRestaurantId,
         endpoint: subscription.endpoint,
         p256dh: subscription.keys.p256dh,
         auth: subscription.keys.auth,

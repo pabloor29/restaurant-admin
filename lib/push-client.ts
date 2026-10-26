@@ -46,7 +46,9 @@ export type SubscribeResult =
 
 // Request permission (must run inside a user gesture), subscribe with the VAPID
 // key, and persist the subscription server-side. Caller handles UI/state.
-export async function enablePush(): Promise<SubscribeResult> {
+// `restaurantId` lets an admin tie the subscription to the restaurant space
+// they have open; owners ignore it (server uses their own restaurant).
+export async function enablePush(restaurantId?: string): Promise<SubscribeResult> {
   try {
     const perm = await Notification.requestPermission()
     if (perm !== 'granted') return { ok: false, reason: 'denied' }
@@ -64,7 +66,7 @@ export async function enablePush(): Promise<SubscribeResult> {
     const res = await fetch('/api/push/subscribe', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ subscription: sub.toJSON(), userAgent: navigator.userAgent }),
+      body: JSON.stringify({ subscription: sub.toJSON(), userAgent: navigator.userAgent, restaurantId }),
     })
     if (!res.ok) return { ok: false, reason: 'save_failed' }
 
