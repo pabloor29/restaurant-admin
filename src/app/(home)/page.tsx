@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import ContactForm from './ContactForm'
+import VisitTracker from './VisitTracker'
 import { HeroVideo } from '../../components/HeroVideo'
 
 const FEATURES = [
@@ -242,6 +243,7 @@ const JSON_LD = {
 export default function HomePage() {
   return (
     <div style={{ backgroundColor: 'var(--paper)', minHeight: '100vh' }}>
+      <VisitTracker />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }}
