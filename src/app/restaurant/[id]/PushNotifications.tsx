@@ -1,17 +1,9 @@
 "use client"
 
 import { useEffect, useState } from 'react'
+import { isPushSupported, registerServiceWorker, enablePush } from '../../../../lib/push-client'
 
 type State = 'loading' | 'unsupported' | 'default' | 'denied' | 'subscribed' | 'error'
-
-function urlBase64ToUint8Array(base64String: string) {
-  const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
-  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/')
-  const raw = atob(base64)
-  const arr = new Uint8Array(raw.length)
-  for (let i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i)
-  return arr
-}
 
 export default function PushNotifications() {
   const [state, setState] = useState<State>('loading')
@@ -19,17 +11,11 @@ export default function PushNotifications() {
   const [msg, setMsg] = useState('')
 
   useEffect(() => {
-    if (typeof window === 'undefined') return
-    if (
-      !('serviceWorker' in navigator) ||
-      !('PushManager' in window) ||
-      !('Notification' in window)
-    ) {
+    if (!isPushSupported()) {
       setState('unsupported')
       return
     }
-    navigator.serviceWorker
-      .register('/sw.js')
+    registerServiceWorker()
       .then(async (reg) => {
         const sub = await reg.pushManager.getSubscription()
         if (sub) setState('subscribed')
@@ -42,29 +28,13 @@ export default function PushNotifications() {
   async function enable() {
     setBusy(true)
     setMsg('')
-    try {
-      const perm = await Notification.requestPermission()
-      if (perm !== 'granted') {
-        setState('denied')
-        setBusy(false)
-        return
-      }
-      const reg = await navigator.serviceWorker.ready
-      const key = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
-      if (!key) throw new Error('missing_key')
-      const sub = await reg.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(key),
-      })
-      const res = await fetch('/api/push/subscribe', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ subscription: sub.toJSON(), userAgent: navigator.userAgent }),
-      })
-      if (!res.ok) throw new Error('save_failed')
+    const res = await enablePush()
+    if (res.ok) {
       setState('subscribed')
       setMsg('Notifications activées sur cet appareil.')
-    } catch {
+    } else if (res.reason === 'denied') {
+      setState('denied')
+    } else {
       setState('error')
       setMsg("Impossible d'activer les notifications.")
     }

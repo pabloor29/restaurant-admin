@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { createClient } from '../../../../lib/supabase/server'
 import RestaurantNav from './RestaurantNav'
+import PushPrompt from './PushPrompt'
 
 export const metadata: Metadata = {
   title: 'Espace restaurant',
@@ -54,6 +55,9 @@ export default async function RestaurantLayout({
         isAdmin={isAdmin}
         initialEnabled={initialEnabled}
       />
+
+      {/* First-run prompt to turn on reservation push alerts (owner only). */}
+      {!isAdmin && <PushPrompt />}
 
       {/* Contenu principal */}
       <div className="flex-1 min-w-0">
